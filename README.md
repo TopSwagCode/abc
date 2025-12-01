@@ -2,6 +2,45 @@
 
 A simple 2D browser game mixing mechanics from Breakout and Vampire Survivors, built with Phaser.js.
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the [`docs/`](docs/) folder:
+
+### Getting Started
+- **[Quick Start Guide](docs/QUICKSTART.md)** - Get up and running quickly
+- **[Project Overview](docs/PROJECT_OVERVIEW.md)** - High-level architecture and design
+- **[Changelog](docs/CHANGELOG.md)** - Version history and updates
+
+### Feature Guides
+- **[Controller Support](docs/CONTROLLER_GUIDE.md)** - Gamepad/controller setup and controls
+- **[Hybrid Input System](docs/HYBRID_INPUT_SYSTEM.md)** - Auto-switching between mouse and controller
+- **[Item System](docs/ITEM_GUIDE.md)** - Complete guide to weapons and items
+- **[Map System](docs/MAP_SYSTEM_GUIDE.md)** - Custom maps and environments
+- **[Sprite System](docs/SPRITE_GUIDE.md)** - Adding custom sprites and graphics
+- **[Player Sprites](docs/PLAYER_SPRITE_GUIDE.md)** - Customizing the player character
+
+### Technical Documentation
+- **[Architecture](docs/ARCHITECTURE.md)** - Code structure and organization
+- **[Collision System](docs/COLLISION_TECHNICAL.md)** - Continuous collision detection details
+- **[Implementation Summary](docs/IMPLEMENTATION_SUMMARY.md)** - Feature implementation notes
+- **[Combat Feedback](docs/COMBAT_FEEDBACK.md)** - Visual and audio feedback systems
+- **[Debug Guide](docs/DEBUG_GUIDE.md)** - Debugging tools and techniques
+
+### Troubleshooting
+- **[Gamepad macOS Issues](docs/GAMEPAD_MACOS_ISSUE.md)** - Why Xbox controllers don't work on macOS
+- **[Chrome Gamepad Fix](docs/CHROME_GAMEPAD_FIX.md)** - Browser gamepad troubleshooting
+- **[Firefox Gamepad Setup](docs/FIREFOX_GAMEPAD_SETUP.md)** - Firefox-specific configuration
+
+### Version Notes
+- **[Bug Fixes v0.7.1](docs/BUGFIX_v0.7.1.md)** - Collision and health bar fixes
+- **[Version 0.8.1 Summary](docs/VERSION_0.8.1_SUMMARY.md)** - Latest changes
+
+### Planning & Ideas
+- **[Game Plan v1](docs/game_plan_v1.md)** - Original feature roadmap
+- **[Ideas](docs/ideas.md)** - Feature brainstorming and concepts
+
+---
+
 ## Features Implemented ✅
 
 - **Player Controls**: WASD movement, mouse rotation, click to shoot
