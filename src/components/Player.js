@@ -43,6 +43,12 @@ export default class Player {
         this.crosshair.setAlpha(GameConfig.CROSSHAIR.ALPHA);
         this.crosshair.setVisible(false); // Hidden by default (mouse mode)
         
+        // Animation properties for bobbing and squashing
+        this.animationTime = 0;
+        this.baseScale = this.scene.textures.exists('player_sprite') ? 
+            (GameConfig.PLAYER.SIZE / Math.max(this.sprite.width, this.sprite.height)) : 1;
+        this.currentAimAngle = 0; // Track aim direction for sprite flipping
+        
         // Track previous position for continuous collision
         this.sprite.prevX = this.sprite.x;
         this.sprite.prevY = this.sprite.y;
@@ -112,8 +118,11 @@ export default class Player {
         // Handle movement
         this.handleMovement(inputManager);
         
-        // Handle rotation
-        this.handleRotation(inputManager);
+        // Handle sprite flipping based on aim direction (instead of rotation)
+        this.handleAimDirection(inputManager);
+        
+        // Animate player sprite (bob and squash)
+        this.animatePlayer();
         
         // Update shadow position
         this.shadow.x = this.sprite.x;
@@ -121,9 +130,9 @@ export default class Player {
         
         // Update crosshair position
         const distance = GameConfig.CROSSHAIR.DISTANCE;
-        this.crosshair.x = this.sprite.x + Math.cos(this.sprite.rotation) * distance;
-        this.crosshair.y = this.sprite.y + Math.sin(this.sprite.rotation) * distance;
-        this.crosshair.rotation = this.sprite.rotation;
+        this.crosshair.x = this.sprite.x + Math.cos(this.currentAimAngle) * distance;
+        this.crosshair.y = this.sprite.y + Math.sin(this.currentAimAngle) * distance;
+        this.crosshair.rotation = this.currentAimAngle;
     }
     
     updatePreviousPosition() {
@@ -153,14 +162,77 @@ export default class Player {
         }
     }
     
-    handleRotation(inputManager) {
+    handleAimDirection(inputManager) {
         const aim = inputManager.getAim();
         
         if (aim.angle !== null) {
-            this.sprite.rotation = aim.angle;
+            this.currentAimAngle = aim.angle;
+            
+            // Flip sprite based on aim direction
+            // If aiming left (angle between 90° and 270°), flip sprite
+            const angleInDegrees = (aim.angle * 180 / Math.PI + 360) % 360;
+            if (angleInDegrees > 90 && angleInDegrees < 270) {
+                // Aiming left, flip sprite
+                this.sprite.setFlipX(true);
+            } else {
+                // Aiming right, show normal sprite
+                this.sprite.setFlipX(false);
+            }
             
             // Show/hide crosshair based on input method
             this.crosshair.setVisible(aim.isGamepad);
+        }
+    }
+    
+    /**
+     * Animate player with bob and squash effects based on movement
+     */
+    animatePlayer() {
+        if (!this.sprite) return;
+        
+        // Get movement velocity
+        const velocity = this.sprite.body.velocity;
+        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+        
+        // Only animate when moving
+        if (speed > 1) {
+            // Animation speed based on movement speed
+            const speedFactor = speed / this.moveSpeed;
+            const bobSpeed = speedFactor * 3; // Adjust multiplier for animation speed
+            
+            // Update animation time
+            this.animationTime += 0.016 * bobSpeed; // ~60fps delta
+            
+            // Calculate bob offset (vertical bounce)
+            const bobAmount = speedFactor * 2; // Movement speed affects bob intensity
+            const bobOffset = Math.sin(this.animationTime) * bobAmount;
+            
+            // Calculate squash/stretch
+            const squashAmount = 0.08 * speedFactor;
+            const squashFactor = Math.sin(this.animationTime * 2) * squashAmount;
+            
+            // Apply scale with squash effect
+            const scaleX = this.baseScale * (1 + squashFactor);
+            const scaleY = this.baseScale * (1 - squashFactor);
+            
+            // Preserve flip state when setting scale
+            const currentFlip = this.sprite.flipX;
+            this.sprite.setScale(scaleX, scaleY);
+            this.sprite.setFlipX(currentFlip);
+            
+            // Apply vertical bob offset
+            this.sprite.displayOriginY = this.sprite.height / 2 - bobOffset;
+            
+            // Update shadow with bob effect
+            const shadowScale = 1 - Math.abs(bobOffset) * 0.02;
+            this.shadow.setScale(shadowScale);
+        } else {
+            // Reset to base scale when not moving
+            const currentFlip = this.sprite.flipX;
+            this.sprite.setScale(this.baseScale);
+            this.sprite.setFlipX(currentFlip);
+            this.sprite.displayOriginY = this.sprite.height / 2;
+            this.shadow.setScale(1);
         }
     }
     
@@ -170,8 +242,8 @@ export default class Player {
     }
     
     getRotation() {
-        if (!this.sprite) return 0;
-        return this.sprite.rotation;
+        // Return current aim angle instead of sprite rotation
+        return this.currentAimAngle;
     }
     
     getHP() {
@@ -224,6 +296,14 @@ export default class Player {
         this.hp = this.maxHP;
         this.sprite.setPosition(GameConfig.MAP_WIDTH / 2, GameConfig.MAP_HEIGHT / 2);
         this.sprite.setVelocity(0, 0);
+        
+        // Reset animation properties
+        this.animationTime = 0;
+        this.currentAimAngle = 0;
+        this.sprite.setScale(this.baseScale);
+        this.sprite.setFlipX(false);
+        this.sprite.displayOriginY = this.sprite.height / 2;
+        this.shadow.setScale(1);
         
         // Reset previous position for collision detection
         this.prevX = GameConfig.MAP_WIDTH / 2;

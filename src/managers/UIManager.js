@@ -25,6 +25,13 @@ export default class UIManager {
         this.onUpgradeSelect = null;
         this.stickMoved = false;
         this.selectionKeyPressed = false;
+        
+        // Animation tracking for smooth bar transitions
+        this.targetHealthWidth = 0;
+        this.currentHealthWidth = 0;
+        this.targetXPWidth = 0;
+        this.currentXPWidth = 0;
+        this.glowPulse = 0;
     }
     
     /**
@@ -52,18 +59,25 @@ export default class UIManager {
         const width = 200;
         const height = 25;
         
-        // Background
-        this.uiElements.hpBarBg = this.scene.add.rectangle(x, y, width, height, 0x333333);
+        // Background with slight gradient effect
+        this.uiElements.hpBarBg = this.scene.add.rectangle(x, y, width, height, 0x1a1a1a);
         this.uiElements.hpBarBg.setOrigin(0, 0);
-        this.uiElements.hpBarBg.setStrokeStyle(2, 0x000000);
+        this.uiElements.hpBarBg.setStrokeStyle(3, 0x444444);
         this.uiElements.hpBarBg.setScrollFactor(0);
         this.uiElements.hpBarBg.setDepth(GameConfig.DEPTH.HUD);
         
-        // Fill
+        // Animated fill bar
         this.uiElements.hpBarFill = this.scene.add.rectangle(x + 2, y + 2, width - 4, height - 4, 0x00ff00);
         this.uiElements.hpBarFill.setOrigin(0, 0);
         this.uiElements.hpBarFill.setScrollFactor(0);
         this.uiElements.hpBarFill.setDepth(GameConfig.DEPTH.HUD + 1);
+        
+        // Shine/glow overlay for health
+        this.uiElements.hpBarShine = this.scene.add.rectangle(x + 2, y + 2, width - 4, (height - 4) / 2, 0xffffff);
+        this.uiElements.hpBarShine.setOrigin(0, 0);
+        this.uiElements.hpBarShine.setScrollFactor(0);
+        this.uiElements.hpBarShine.setDepth(GameConfig.DEPTH.HUD + 2);
+        this.uiElements.hpBarShine.setAlpha(0.2);
         
         // Text
         this.uiElements.hpText = this.scene.add.text(x + width / 2, y + height / 2, '100/100', {
@@ -75,27 +89,35 @@ export default class UIManager {
         });
         this.uiElements.hpText.setOrigin(0.5);
         this.uiElements.hpText.setScrollFactor(0);
-        this.uiElements.hpText.setDepth(GameConfig.DEPTH.HUD + 2);
+        this.uiElements.hpText.setDepth(GameConfig.DEPTH.HUD + 3);
+        
+        // Initialize animation values
+        this.currentHealthWidth = width - 4;
+        this.targetHealthWidth = width - 4;
     }
     
     /**
-     * Update health bar display
+     * Update health bar display with smooth animation
      */
     updateHealthBar(currentHP, maxHP) {
         const hpPercent = Math.max(0, currentHP / maxHP);
         const maxWidth = 196; // 200 - 4 (padding)
         
-        this.uiElements.hpBarFill.width = maxWidth * hpPercent;
+        // Set target width for smooth animation
+        this.targetHealthWidth = maxWidth * hpPercent;
+        
         this.uiElements.hpText.setText(`${Math.max(0, Math.floor(currentHP))}/${maxHP}`);
         
         // Color based on health
+        let color;
         if (hpPercent > 0.5) {
-            this.uiElements.hpBarFill.setFillStyle(0x00ff00);
+            color = 0x00ff00; // Green
         } else if (hpPercent > 0.25) {
-            this.uiElements.hpBarFill.setFillStyle(0xffaa00);
+            color = 0xffaa00; // Orange
         } else {
-            this.uiElements.hpBarFill.setFillStyle(0xff0000);
+            color = 0xff0000; // Red
         }
+        this.uiElements.hpBarFill.setFillStyle(color);
     }
     
     /**
@@ -107,25 +129,32 @@ export default class UIManager {
         const width = 200;
         const height = 20;
         
-        // Background
-        this.uiElements.xpBarBg = this.scene.add.rectangle(x, y, width, height, 0x222244);
+        // Background with gradient
+        this.uiElements.xpBarBg = this.scene.add.rectangle(x, y, width, height, 0x0d0d1a);
         this.uiElements.xpBarBg.setOrigin(0, 0);
-        this.uiElements.xpBarBg.setStrokeStyle(2, 0x4444ff);
+        this.uiElements.xpBarBg.setStrokeStyle(2, 0x2244aa);
         this.uiElements.xpBarBg.setScrollFactor(0);
         this.uiElements.xpBarBg.setDepth(GameConfig.DEPTH.HUD);
         
-        // Fill
+        // Animated fill
         this.uiElements.xpBarFill = this.scene.add.rectangle(x + 2, y + 2, 0, height - 4, 0x00aaff);
         this.uiElements.xpBarFill.setOrigin(0, 0);
         this.uiElements.xpBarFill.setScrollFactor(0);
         this.uiElements.xpBarFill.setDepth(GameConfig.DEPTH.HUD + 1);
         
-        // Glow effect
-        this.uiElements.xpBarGlow = this.scene.add.rectangle(x + 2, y + 2, 0, height - 4, 0x66ccff);
+        // Animated glow overlay with pulse effect
+        this.uiElements.xpBarGlow = this.scene.add.rectangle(x + 2, y + 2, 0, height - 4, 0x66ddff);
         this.uiElements.xpBarGlow.setOrigin(0, 0);
         this.uiElements.xpBarGlow.setScrollFactor(0);
-        this.uiElements.xpBarGlow.setDepth(GameConfig.DEPTH.HUD + 1);
-        this.uiElements.xpBarGlow.setAlpha(0.5);
+        this.uiElements.xpBarGlow.setDepth(GameConfig.DEPTH.HUD + 2);
+        this.uiElements.xpBarGlow.setAlpha(0.3);
+        
+        // Shine effect on top half
+        this.uiElements.xpBarShine = this.scene.add.rectangle(x + 2, y + 2, 0, (height - 4) / 2, 0xffffff);
+        this.uiElements.xpBarShine.setOrigin(0, 0);
+        this.uiElements.xpBarShine.setScrollFactor(0);
+        this.uiElements.xpBarShine.setDepth(GameConfig.DEPTH.HUD + 3);
+        this.uiElements.xpBarShine.setAlpha(0.15);
         
         // Text
         this.uiElements.xpText = this.scene.add.text(x + width / 2, y + height / 2, 'XP: 0/100', {
@@ -137,18 +166,24 @@ export default class UIManager {
         });
         this.uiElements.xpText.setOrigin(0.5);
         this.uiElements.xpText.setScrollFactor(0);
-        this.uiElements.xpText.setDepth(GameConfig.DEPTH.HUD + 2);
+        this.uiElements.xpText.setDepth(GameConfig.DEPTH.HUD + 4);
+        
+        // Initialize animation values
+        this.currentXPWidth = 0;
+        this.targetXPWidth = 0;
+        this.glowPulse = 0;
     }
     
     /**
-     * Update XP bar display
+     * Update XP bar display with smooth animation
      */
     updateXPBar(currentXP, requiredXP) {
         const xpPercent = Math.min(1, currentXP / requiredXP);
         const maxWidth = 196; // 200 - 4 (padding)
         
-        this.uiElements.xpBarFill.width = maxWidth * xpPercent;
-        this.uiElements.xpBarGlow.width = maxWidth * xpPercent;
+        // Set target width for smooth animation
+        this.targetXPWidth = maxWidth * xpPercent;
+        
         this.uiElements.xpText.setText(`XP: ${currentXP}/${requiredXP}`);
     }
     
@@ -571,6 +606,37 @@ export default class UIManager {
         this.scene.events.on('itemsChanged', (playerItems) => {
             this.updateItemsDisplay(playerItems);
         });
+    }
+    
+    /**
+     * Update UI animations (call this every frame)
+     */
+    update(delta) {
+        // Smooth health bar animation
+        const healthLerpSpeed = 0.15; // Adjust for faster/slower animation
+        this.currentHealthWidth += (this.targetHealthWidth - this.currentHealthWidth) * healthLerpSpeed;
+        
+        if (this.uiElements.hpBarFill) {
+            this.uiElements.hpBarFill.width = Math.max(0, this.currentHealthWidth);
+            this.uiElements.hpBarShine.width = Math.max(0, this.currentHealthWidth);
+        }
+        
+        // Smooth XP bar animation with faster fill speed
+        const xpLerpSpeed = 0.1; // Slower for smoother XP gain visualization
+        this.currentXPWidth += (this.targetXPWidth - this.currentXPWidth) * xpLerpSpeed;
+        
+        if (this.uiElements.xpBarFill) {
+            this.uiElements.xpBarFill.width = Math.max(0, this.currentXPWidth);
+            this.uiElements.xpBarShine.width = Math.max(0, this.currentXPWidth);
+        }
+        
+        // Animate XP bar glow with pulse effect
+        if (this.uiElements.xpBarGlow) {
+            this.glowPulse += delta * 0.003; // Pulse speed
+            const pulseAlpha = 0.3 + Math.sin(this.glowPulse) * 0.15; // Oscillate between 0.15 and 0.45
+            this.uiElements.xpBarGlow.setAlpha(pulseAlpha);
+            this.uiElements.xpBarGlow.width = Math.max(0, this.currentXPWidth);
+        }
     }
     
     /**

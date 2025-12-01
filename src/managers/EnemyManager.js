@@ -140,6 +140,18 @@ export default class EnemyManager {
         enemy.speed = enemyType.baseSpeed + (this.enemySpeed - GameConfig.ENEMY.SPEED);
         enemy.enemyType = enemyType;
         
+        // Animation properties for bobbing and squashing
+        enemy.animationTime = Math.random() * Math.PI * 2; // Random starting phase
+        enemy.baseScale = enemyType.sprite ? 
+            (enemyType.size * 2) / Math.max(enemy.width, enemy.height) : 1;
+        
+        // Calculate animation speed based on movement speed and size
+        // Faster enemies = faster animation, bigger enemies = slower animation
+        const speedFactor = enemy.speed / 100; // Normalize speed
+        const sizeFactor = 1 / (enemyType.size / 16); // Normalize to base size 16
+        enemy.bobSpeed = speedFactor * sizeFactor * 2; // Combined factor
+        enemy.bobAmount = (speedFactor * 2) / sizeFactor; // Faster = more bob, bigger = less bob
+        
         // Track previous position for continuous collision
         enemy.prevX = x;
         enemy.prevY = y;
@@ -251,10 +263,21 @@ export default class EnemyManager {
                     this.moveEnemyDirectChase(enemy, playerPos);
             }
             
-            // Update shadow position
+            // Animate enemy sprite (bob and squash based on speed and size)
+            this.animateEnemy(enemy);
+            
+            // Flip sprite based on player position (face toward player)
+            this.updateEnemyFacing(enemy, playerPos);
+            
+            // Update shadow position (follow bob animation)
             if (enemy.shadow) {
                 enemy.shadow.x = enemy.x;
-                enemy.shadow.y = enemy.y + 3;
+                // Shadow moves slightly when bobbing up (simulates height)
+                const bobOffset = Math.sin(enemy.animationTime) * enemy.bobAmount * 0.5;
+                enemy.shadow.y = enemy.y + 3 + Math.abs(bobOffset);
+                // Shadow gets slightly smaller when enemy "jumps" higher
+                const shadowScale = 1 - Math.abs(bobOffset) * 0.02;
+                enemy.shadow.setScale(shadowScale);
             }
             
             // Update health bar
@@ -337,6 +360,55 @@ export default class EnemyManager {
             Math.cos(enemy.wanderAngle) * enemy.speed,
             Math.sin(enemy.wanderAngle) * enemy.speed
         );
+    }
+    
+    /**
+     * Animate enemy with bob and squash effects based on speed and size
+     */
+    animateEnemy(enemy) {
+        if (!enemy || !enemy.active) return;
+        
+        // Update animation time based on bob speed
+        enemy.animationTime += 0.016 * enemy.bobSpeed; // ~60fps delta
+        
+        // Calculate bob offset (vertical bounce)
+        const bobOffset = Math.sin(enemy.animationTime) * enemy.bobAmount;
+        
+        // Calculate squash/stretch (horizontal and vertical scale variation)
+        // When bobbing up, squash vertically and stretch horizontally (and vice versa)
+        const squashAmount = 0.05 * enemy.bobAmount; // Proportional to bob amount
+        const squashFactor = Math.sin(enemy.animationTime * 2) * squashAmount;
+        
+        // Apply scale with squash effect
+        const scaleX = enemy.baseScale * (1 + squashFactor);
+        const scaleY = enemy.baseScale * (1 - squashFactor);
+        
+        enemy.setScale(scaleX, scaleY);
+        
+        // Apply vertical bob offset to y position (visual only, doesn't affect physics)
+        enemy.displayOriginY = enemy.height / 2 - bobOffset;
+    }
+    
+    /**
+     * Update enemy sprite facing based on movement direction
+     * Enemies face the direction they are moving
+     */
+    updateEnemyFacing(enemy, playerPos) {
+        if (!enemy || !enemy.active) return;
+        
+        // Check the enemy's velocity to determine movement direction
+        const velocity = enemy.body.velocity;
+        
+        // Only update facing if enemy is actually moving (avoid flickering when stationary)
+        if (Math.abs(velocity.x) > 1) {
+            if (velocity.x < 0) {
+                // Moving left, flip the sprite
+                enemy.setFlipX(true);
+            } else {
+                // Moving right, show normal sprite
+                enemy.setFlipX(false);
+            }
+        }
     }
     
     selectRandomEnemyType() {
