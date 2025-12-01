@@ -1,6 +1,38 @@
 # Changelog
 
-## Version 0.8.0 - Controller Support & Crosshair (Current)
+## Version 0.8.1 - Hybrid Input Auto-Switching (Current)
+
+### Major Features
+- **Automatic Input Mode Switching**: Game intelligently switches between mouse and controller
+  - Detects controller use when right stick is moved
+  - Detects mouse use when cursor is moved (5px threshold)
+  - Seamless transitions with no user intervention
+  - Console feedback shows mode switches
+
+- **Smart Crosshair Visibility**: 
+  - Hidden in mouse mode (default)
+  - Visible in controller mode
+  - Auto-toggles when input mode changes
+
+- **Unified Shooting System**:
+  - Projectiles always shoot in player's facing direction
+  - Works correctly in both mouse and controller modes
+  - No more shooting in wrong direction when switching inputs
+
+### Bug Fixes
+- Fixed projectiles shooting toward mouse cursor even when using controller
+- Fixed crosshair always being visible (now only shows in controller mode)
+- Added proper input mode state tracking
+
+### Technical Changes
+- Added `inputMode` state variable ('mouse' or 'controller')
+- Added mouse movement detection with threshold
+- Modified shooting to use `player.rotation` instead of mouse pointer
+- Added automatic crosshair visibility management
+
+---
+
+## Version 0.8.0 - Controller Support & Crosshair
 
 ### Major Features
 - **Full Gamepad/Controller Support**: Twin-stick shooter controls

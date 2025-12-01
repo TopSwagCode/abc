@@ -46,6 +46,11 @@ class GameScene extends Phaser.Scene {
         this.isPaused = false;
         this.showDebug = false;
         
+        // Input mode tracking
+        this.inputMode = 'mouse'; // 'mouse' or 'controller'
+        this.lastMouseX = 0;
+        this.lastMouseY = 0;
+        
         // Enemy types configuration
         this.enemyTypes = [];
         this.enemyConfig = null;
@@ -130,6 +135,7 @@ class GameScene extends Phaser.Scene {
         this.crosshair.setScale(0.05); // Scale down from 512x512 to ~25 pixels
         this.crosshair.setDepth(11); // Above player
         this.crosshair.setAlpha(0.8); // Slightly transparent
+        this.crosshair.setVisible(false); // Hidden by default (mouse mode)
         this.crosshairDistance = 40; // Distance from player
         
         // Track previous position for continuous collision
@@ -251,6 +257,28 @@ class GameScene extends Phaser.Scene {
                 this.handleItemShooting(currentTime);
             }
         });
+        
+        // Track mouse movement to detect input mode switch
+        this.input.on('pointermove', (pointer) => {
+            const mouseMoveThreshold = 5; // pixels
+            const deltaX = Math.abs(pointer.x - this.lastMouseX);
+            const deltaY = Math.abs(pointer.y - this.lastMouseY);
+            
+            if (deltaX > mouseMoveThreshold || deltaY > mouseMoveThreshold) {
+                if (this.inputMode !== 'mouse') {
+                    console.log('🖱️ Switched to mouse control');
+                    this.inputMode = 'mouse';
+                    this.crosshair.setVisible(false);
+                }
+            }
+            
+            this.lastMouseX = pointer.x;
+            this.lastMouseY = pointer.y;
+        });
+        
+        // Initialize mouse position tracking
+        this.lastMouseX = this.input.activePointer.x;
+        this.lastMouseY = this.input.activePointer.y;
         
         // Set up collisions
         // Note: Ball-enemy collision now uses continuous collision in updateBalls()
@@ -771,6 +799,13 @@ class GameScene extends Phaser.Scene {
             if (Math.abs(rightStick.x) > deadzone || Math.abs(rightStick.y) > deadzone) {
                 angle = Math.atan2(rightStick.y, rightStick.x);
                 usingGamepad = true;
+                
+                // Switch to controller mode
+                if (this.inputMode !== 'controller') {
+                    console.log('🎮 Switched to controller control');
+                    this.inputMode = 'controller';
+                    this.crosshair.setVisible(true);
+                }
             }
         }
         
@@ -852,14 +887,8 @@ class GameScene extends Phaser.Scene {
         const numProjectiles = behavior.projectilesPerShot;
         const spreadAngle = behavior.spreadAngle;
         
-        // Calculate base angle toward mouse
-        const pointer = this.input.activePointer;
-        const baseAngle = Phaser.Math.Angle.Between(
-            this.player.x,
-            this.player.y,
-            pointer.x,
-            pointer.y
-        );
+        // Use player rotation as base angle (which already handles mouse/controller)
+        const baseAngle = this.player.rotation;
         
         // Shoot multiple projectiles if needed
         for (let i = 0; i < numProjectiles; i++) {
