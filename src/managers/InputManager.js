@@ -20,6 +20,9 @@ export default class InputManager {
         this.aimAngle = 0;
         this.lastGamepadAngle = null; // Store last gamepad aim angle
         
+        // Button state tracking for "just pressed" detection
+        this.previousButtonStates = {};
+        
         this.init();
     }
     
@@ -117,6 +120,23 @@ export default class InputManager {
     update() {
         this.updateMovement();
         this.updateAiming();
+        this.updateButtonStates();
+    }
+    
+    updateButtonStates() {
+        // Track button states for "just pressed" detection
+        if (!this.gamepad) return;
+        
+        const currentStates = {};
+        
+        // Check all configured buttons
+        Object.keys(GameConfig.INPUT.GAMEPAD.BUTTONS).forEach(buttonName => {
+            const buttonIndex = GameConfig.INPUT.GAMEPAD.BUTTONS[buttonName];
+            const button = this.gamepad.buttons[buttonIndex];
+            currentStates[buttonName] = button ? button.pressed : false;
+        });
+        
+        this.previousButtonStates = currentStates;
     }
     
     updateMovement() {
@@ -240,11 +260,13 @@ export default class InputManager {
             return false;
         }
         
-        // Phaser gamepad buttons have a 'justDown' property
-        const justPressed = button.justDown || false;
+        // Check if button is currently pressed but was not pressed in previous frame
+        const isPressed = button.pressed;
+        const wasPressedBefore = this.previousButtonStates[buttonName] || false;
+        const justPressed = isPressed && !wasPressedBefore;
         
         if (justPressed) {
-            console.log(`🎮 Button ${buttonName} (index ${buttonIndex}) just pressed`);
+            console.log(`🎮 Button ${buttonName} (index ${buttonIndex}) just pressed!`);
         }
         
         return justPressed;
