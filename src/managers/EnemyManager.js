@@ -283,6 +283,22 @@ export default class EnemyManager {
             // Update health bar
             this.updateEnemyHealthBar(enemy);
             
+            // Update poison stack indicator if poisoned
+            if (enemy.poisonStacks > 0 && this.scene.effectsManager) {
+                this.scene.effectsManager.updateStackIndicator(enemy);
+            }
+            
+            // Check if enemy died (from poison or other DoT effects)
+            if (enemy.hp <= 0) {
+                // Emit death event for XP
+                this.scene.events.emit('enemyKilled', {
+                    enemyType: enemy.enemyType,
+                    position: { x: enemy.x, y: enemy.y }
+                });
+                this.destroyEnemy(enemy);
+                return; // Skip further processing for this enemy
+            }
+            
             // Remove if too far from map (cleanup)
             if (enemy.x < -100 || enemy.x > GameConfig.MAP_WIDTH + 100 ||
                 enemy.y < -100 || enemy.y > GameConfig.MAP_HEIGHT + 100) {
@@ -443,6 +459,17 @@ export default class EnemyManager {
     
     destroyEnemy(enemy) {
         if (!enemy) return;
+        
+        // Clear poison effects if EffectsManager exists
+        if (this.scene.effectsManager && enemy.poisonStacks > 0) {
+            this.scene.effectsManager.clearPoison(enemy);
+        }
+        
+        // Destroy poison stack text if it exists
+        if (enemy.poisonStackText) {
+            enemy.poisonStackText.destroy();
+            enemy.poisonStackText = null;
+        }
         
         // Destroy attached graphics
         if (enemy.shadow && enemy.shadow.active) {

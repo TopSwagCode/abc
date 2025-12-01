@@ -16,6 +16,7 @@ import CollisionManager from './managers/CollisionManager.js';
 import UIManager from './managers/UIManager.js';
 import LevelingSystem from './systems/LevelingSystem.js';
 import MapSystem from './systems/MapSystem.js';
+import EffectsManager from './managers/EffectsManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -30,6 +31,7 @@ export default class GameScene extends Phaser.Scene {
         this.uiManager = null;
         this.levelingSystem = null;
         this.mapSystem = null;
+        this.effectsManager = null;
         
         // Physics groups
         this.balls = null;
@@ -125,8 +127,11 @@ export default class GameScene extends Phaser.Scene {
         await this.itemManager.loadItemsConfig();
         this.itemManager.createProjectileTextures();
         
-        // Collision Manager
-        this.collisionManager = new CollisionManager(this);
+        // Effects Manager (handles DoT, buffs, debuffs)
+        this.effectsManager = new EffectsManager(this);
+        
+        // Collision Manager (pass effectsManager for poison)
+        this.collisionManager = new CollisionManager(this, this.effectsManager);
         
         // Leveling System
         this.levelingSystem = new LevelingSystem(this);
@@ -336,6 +341,9 @@ export default class GameScene extends Phaser.Scene {
         // Update enemies (includes spawning)
         this.enemyManager.update(time, this.player);
         
+        // Update effects (poison, buffs, debuffs, etc.)
+        this.effectsManager.update(time, this.enemyManager.getEnemies(), this.player);
+        
         // Check collisions BEFORE updating positions
         this.collisionManager.checkBallEnemyCollisions(this.balls, this.enemyManager.getEnemies());
         this.collisionManager.checkPlayerEnemyCollisions(this.player, this.enemyManager.getEnemies());
@@ -417,6 +425,8 @@ export default class GameScene extends Phaser.Scene {
             // Remove if out of bounds
             if (ball.x < -100 || ball.x > GameConfig.MAP_WIDTH + 100 ||
                 ball.y < -100 || ball.y > GameConfig.MAP_HEIGHT + 100) {
+                // Clean up hit tracking before destroying
+                this.collisionManager.cleanupBallHits(ball);
                 ball.destroy();
             }
         });

@@ -6,8 +6,70 @@
 import GameConfig from '../config/GameConfig.js';
 
 export class CollisionManager {
-    constructor(scene) {
+    constructor(scene, effectsManager) {
         this.scene = scene;
+        this.effectsManager = effectsManager;
+        
+        // Track recent ball-enemy collisions to prevent multiple hits
+        // Format: Map<ballId, Map<enemyId, timestamp>>
+        this.recentHits = new Map();
+        this.hitCooldown = 50; // 50ms cooldown between same ball hitting same enemy
+    }
+    
+    /**
+     * Check if a ball can hit an enemy (cooldown-based)
+     */
+    canBallHitEnemy(ball, enemy) {
+        // Create unique ID for the ball if it doesn't have one
+        if (!ball.ballId) {
+            ball.ballId = `ball_${Date.now()}_${Math.random()}`;
+        }
+        
+        // Create unique ID for the enemy if it doesn't have one
+        if (!enemy.enemyId) {
+            enemy.enemyId = `enemy_${enemy.x}_${enemy.y}_${Date.now()}`;
+        }
+        
+        const currentTime = Date.now();
+        
+        // Get the hit tracking for this ball
+        if (!this.recentHits.has(ball.ballId)) {
+            this.recentHits.set(ball.ballId, new Map());
+        }
+        
+        const ballHits = this.recentHits.get(ball.ballId);
+        
+        // Check if this ball hit this enemy recently
+        if (ballHits.has(enemy.enemyId)) {
+            const lastHitTime = ballHits.get(enemy.enemyId);
+            const timeSinceHit = currentTime - lastHitTime;
+            
+            if (timeSinceHit < this.hitCooldown) {
+                // Still in cooldown period
+                return false;
+            }
+        }
+        
+        // Record this hit
+        ballHits.set(enemy.enemyId, currentTime);
+        
+        // Clean up old entries (older than 1 second)
+        for (const [enemyId, timestamp] of ballHits.entries()) {
+            if (currentTime - timestamp > 1000) {
+                ballHits.delete(enemyId);
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Clean up hit tracking for a destroyed ball
+     */
+    cleanupBallHits(ball) {
+        if (ball.ballId && this.recentHits.has(ball.ballId)) {
+            this.recentHits.delete(ball.ballId);
+        }
     }
     
     /**
@@ -34,6 +96,11 @@ export class CollisionManager {
             // Check collision with all enemies, find the closest one
             enemiesArray.forEach(enemy => {
                 if (!enemy.active) return;
+                
+                // Check cooldown before doing expensive collision detection
+                if (!this.canBallHitEnemy(ball, enemy)) {
+                    return; // Skip this enemy, still in cooldown
+                }
                 
                 // Get ball and enemy radii
                 const ballRadius = ball.displayWidth / 2;
@@ -169,18 +236,35 @@ export class CollisionManager {
         // Apply damage to enemy
         enemy.hp -= damage;
         
-        // Visual feedback - flash red
-        enemy.setTint(0xff0000);
+        // Apply poison if this is a poison ball
+        if (ball.isPoisonBall && this.effectsManager) {
+            const poisonData = {
+                damagePerTick: ball.poisonDamagePerTick,
+                tickInterval: ball.poisonTickInterval,
+                duration: ball.poisonDuration,
+                maxStacks: ball.poisonMaxStacks
+            };
+            this.effectsManager.applyPoison(enemy, poisonData, this.scene.time.now);
+        }
+        
+        // Visual feedback - flash color based on ball type
+        const flashColor = ball.isPoisonBall ? 0x44ff44 : 0xff0000;
+        enemy.setTint(flashColor);
         this.scene.time.delayedCall(250, () => {
             if (enemy.active) {
-                enemy.clearTint();
+                // Return to poison tint if poisoned, otherwise clear
+                if (enemy.poisonStacks > 0) {
+                    enemy.setTint(0x88ff88);
+                } else {
+                    enemy.clearTint();
+                }
             }
         });
         
         // Damage number popup
         const damageText = this.scene.add.text(enemy.x, enemy.y - 20, `-${damage}`, {
             fontSize: '16px',
-            fill: '#ff0000',
+            fill: ball.isPoisonBall ? '#44ff44' : '#ff0000',
             stroke: '#000000',
             strokeThickness: 2
         });
@@ -221,6 +305,8 @@ export class CollisionManager {
         // Handle ball bounce
         ball.bounceCount++;
         if (ball.bounceCount >= ball.maxBounces) {
+            // Clean up hit tracking before destroying
+            this.cleanupBallHits(ball);
             ball.destroy();
         } else {
             // Bounce ball away from enemy (reflect direction)

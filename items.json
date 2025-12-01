@@ -5,7 +5,7 @@
       "name": "Basic Ball",
       "description": "Standard bouncing projectile",
       "unlockLevel": 1,
-      "isStarting": true,
+      "isStarting": false,
       "maxLevel": 5,
       "visual": {
         "color": "0xffffff",
@@ -113,6 +113,65 @@
         "level5": {
           "projectilesPerShot": 4,
           "spreadAngle": 25
+        }
+      }
+    },
+    {
+      "id": "poison_ball",
+      "name": "Poison Ball",
+      "description": "Applies stacking poison that deals damage over time",
+      "unlockLevel": 3,
+      "isStarting": true,
+      "maxLevel": 5,
+      "visual": {
+        "color": "0x44ff44",
+        "size": 4,
+        "glowColor": "0x88ff88",
+        "trail": true,
+        "trailColor": "0x22ff22"
+      },
+      "baseStats": {
+        "damage": 1,
+        "speed": 350,
+        "maxBounces": 6,
+        "size": 8,
+        "knockback": 40,
+        "fireRate": 350
+      },
+      "levelUpBonus": {
+        "damage": 2,
+        "speed": 25,
+        "maxBounces": 1,
+        "fireRate": -35
+      },
+      "behavior": {
+        "projectilesPerShot": 1,
+        "spreadAngle": 0,
+        "piercing": false,
+        "homing": false,
+        "poison": true,
+        "poisonDamagePerTick": 3,
+        "poisonTickInterval": 1000,
+        "poisonDuration": 5000,
+        "poisonStackable": true,
+        "poisonMaxStacks": 10
+      },
+      "levelUpBehavior": {
+        "level2": {
+          "poisonDamagePerTick": 6
+        },
+        "level3": {
+          "poisonDamagePerTick": 15,
+          "poisonDuration": 6000
+        },
+        "level4": {
+          "poisonDamagePerTick": 18,
+          "poisonMaxStacks": 15
+        },
+        "level5": {
+          "poisonDamagePerTick": 22,
+          "poisonDuration": 7000,
+          "poisonMaxStacks": 20
         }
       }
     }

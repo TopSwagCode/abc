@@ -169,6 +169,15 @@ export default class ItemManager {
             ball.itemType = itemType;
             ball.itemLevel = playerItem.level;
             
+            // Poison properties (if this is a poison ball)
+            if (itemType.behavior.poison) {
+                ball.isPoisonBall = true;
+                ball.poisonDamagePerTick = this.getPoisonDamageForLevel(itemType, playerItem.level);
+                ball.poisonTickInterval = itemType.behavior.poisonTickInterval;
+                ball.poisonDuration = this.getPoisonDurationForLevel(itemType, playerItem.level);
+                ball.poisonMaxStacks = this.getPoisonMaxStacksForLevel(itemType, playerItem.level);
+            }
+            
             ball.setBounce(1, 1);
         }
     }
@@ -207,6 +216,57 @@ export default class ItemManager {
         }
         
         return baseBehavior;
+    }
+    
+    /**
+     * Get poison damage for current level
+     */
+    getPoisonDamageForLevel(itemType, level) {
+        const baseDamage = itemType.behavior.poisonDamagePerTick;
+        const levelUpBehavior = itemType.levelUpBehavior;
+        
+        if (levelUpBehavior) {
+            const levelKey = `level${level}`;
+            if (levelUpBehavior[levelKey] && levelUpBehavior[levelKey].poisonDamagePerTick) {
+                return levelUpBehavior[levelKey].poisonDamagePerTick;
+            }
+        }
+        
+        return baseDamage;
+    }
+    
+    /**
+     * Get poison duration for current level
+     */
+    getPoisonDurationForLevel(itemType, level) {
+        const baseDuration = itemType.behavior.poisonDuration;
+        const levelUpBehavior = itemType.levelUpBehavior;
+        
+        if (levelUpBehavior) {
+            const levelKey = `level${level}`;
+            if (levelUpBehavior[levelKey] && levelUpBehavior[levelKey].poisonDuration) {
+                return levelUpBehavior[levelKey].poisonDuration;
+            }
+        }
+        
+        return baseDuration;
+    }
+    
+    /**
+     * Get poison max stacks for current level
+     */
+    getPoisonMaxStacksForLevel(itemType, level) {
+        const baseStacks = itemType.behavior.poisonMaxStacks;
+        const levelUpBehavior = itemType.levelUpBehavior;
+        
+        if (levelUpBehavior) {
+            const levelKey = `level${level}`;
+            if (levelUpBehavior[levelKey] && levelUpBehavior[levelKey].poisonMaxStacks) {
+                return levelUpBehavior[levelKey].poisonMaxStacks;
+            }
+        }
+        
+        return baseStacks;
     }
     
     /**
