@@ -18,6 +18,7 @@ export default class InputManager {
         // Input state
         this.movement = { x: 0, y: 0 };
         this.aimAngle = 0;
+        this.lastGamepadAngle = null; // Store last gamepad aim angle
         
         this.init();
     }
@@ -162,6 +163,7 @@ export default class InputManager {
             
             if (Math.abs(rightStick.x) > deadzone || Math.abs(rightStick.y) > deadzone) {
                 angle = Math.atan2(rightStick.y, rightStick.x);
+                this.lastGamepadAngle = angle; // Store for when stick is released
                 usingGamepad = true;
                 
                 // Switch to controller mode
@@ -173,8 +175,12 @@ export default class InputManager {
             }
         }
         
-        // Mouse aiming (fallback)
-        if (!usingGamepad) {
+        // Use stored gamepad angle if stick is released but still in controller mode
+        if (!usingGamepad && this.inputMode === 'controller' && this.lastGamepadAngle !== null) {
+            angle = this.lastGamepadAngle;
+        }
+        // Mouse aiming (only when in mouse mode)
+        else if (!usingGamepad && this.inputMode === 'mouse') {
             const pointer = this.scene.input.activePointer;
             const player = this.scene.player; // Access player from scene
             

@@ -209,9 +209,24 @@ export default class GameScene extends Phaser.Scene {
             }
         });
         
-        // Mouse shooting
+        // Auto-fire toggle (F key)
+        this.input.keyboard.on('keydown-F', () => {
+            if (!this.gameOver) {
+                this.itemManager.toggleAutoFire();
+                console.log('🔫 Auto-fire:', this.itemManager.isAutoFireEnabled() ? 'ON' : 'OFF');
+            }
+        });
+        
+        // Mouse shooting and game restart
         this.input.on('pointerdown', () => {
-            if (!this.levelingSystem.isLevelUpPending() && !this.itemManager.isAutoFireEnabled() && !this.gameOver) {
+            // Game over - click to restart
+            if (this.gameOver) {
+                this.scene.restart();
+                return;
+            }
+            
+            // Mouse shooting (when not in level up, not auto-firing, and not game over)
+            if (!this.levelingSystem.isLevelUpPending() && !this.itemManager.isAutoFireEnabled()) {
                 const currentTime = this.time.now;
                 this.itemManager.handleItemShooting(
                     currentTime,
@@ -219,15 +234,6 @@ export default class GameScene extends Phaser.Scene {
                     this.player.getPosition(),
                     this.balls
                 );
-            }
-        });
-        
-        // Game over - click to restart
-        this.input.on('pointerdown', () => {
-            if (this.gameOver) {
-                this.scene.restart();
-                // Note: resetGameState() is not needed here because scene.restart()
-                // will call create() again which initializes everything fresh
             }
         });
     }
@@ -520,5 +526,21 @@ export default class GameScene extends Phaser.Scene {
         this.uiManager.setGameOverVisible(false);
         this.uiManager.hideLevelUpScreen();
         this.events.emit('itemsChanged', this.itemManager.getPlayerItems());
+    }
+    
+    /**
+     * Cleanup when scene shuts down (before restart)
+     */
+    shutdown() {
+        console.log('🧹 Cleaning up GameScene...');
+        
+        // Remove all event listeners
+        this.events.off();
+        this.input.off('pointerdown');
+        this.input.keyboard.off('keydown-P');
+        this.input.keyboard.off('keydown-O');
+        this.input.keyboard.off('keydown-F');
+        
+        console.log('✅ GameScene cleanup complete');
     }
 }
