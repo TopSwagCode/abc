@@ -18,8 +18,8 @@ export const GameConfig = {
         MAX_HP: 100,
         STARTING_HP: 100,
         MOVE_SPEED: 200,
-        SIZE: 30,
-        SHADOW_SIZE: 15,
+        SIZE: 40,
+        SHADOW_SIZE: 20,
         SHADOW_OFFSET_Y: 3,
         SHADOW_ALPHA: 0.3
     },

@@ -149,8 +149,8 @@ export default class EnemyManager {
         // Faster enemies = faster animation, bigger enemies = slower animation
         const speedFactor = enemy.speed / 100; // Normalize speed
         const sizeFactor = 1 / (enemyType.size / 16); // Normalize to base size 16
-        enemy.bobSpeed = speedFactor * sizeFactor * 2; // Combined factor
-        enemy.bobAmount = (speedFactor * 2) / sizeFactor; // Faster = more bob, bigger = less bob
+        enemy.bobSpeed = speedFactor * sizeFactor * 20; // Combined factor
+        enemy.bobAmount = (speedFactor * 2.5) / sizeFactor; // Faster = more bob, bigger = less bob
         
         // Track previous position for continuous collision
         enemy.prevX = x;

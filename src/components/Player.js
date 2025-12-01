@@ -194,46 +194,50 @@ export default class Player {
         const velocity = this.sprite.body.velocity;
         const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
         
-        // Only animate when moving
-        if (speed > 1) {
-            // Animation speed based on movement speed
-            const speedFactor = speed / this.moveSpeed;
-            const bobSpeed = speedFactor * 3; // Adjust multiplier for animation speed
-            
-            // Update animation time
-            this.animationTime += 0.016 * bobSpeed; // ~60fps delta
-            
-            // Calculate bob offset (vertical bounce)
-            const bobAmount = speedFactor * 2; // Movement speed affects bob intensity
-            const bobOffset = Math.sin(this.animationTime) * bobAmount;
-            
-            // Calculate squash/stretch
-            const squashAmount = 0.08 * speedFactor;
-            const squashFactor = Math.sin(this.animationTime * 2) * squashAmount;
-            
-            // Apply scale with squash effect
-            const scaleX = this.baseScale * (1 + squashFactor);
-            const scaleY = this.baseScale * (1 - squashFactor);
-            
-            // Preserve flip state when setting scale
-            const currentFlip = this.sprite.flipX;
-            this.sprite.setScale(scaleX, scaleY);
-            this.sprite.setFlipX(currentFlip);
-            
-            // Apply vertical bob offset
-            this.sprite.displayOriginY = this.sprite.height / 2 - bobOffset;
-            
-            // Update shadow with bob effect
-            const shadowScale = 1 - Math.abs(bobOffset) * 0.02;
-            this.shadow.setScale(shadowScale);
+        // Determine if moving or idle
+        const isMoving = speed > 1;
+        
+        // Animation speed based on movement speed
+        let speedFactor, bobSpeed, bobAmount, squashAmount;
+        
+        if (isMoving) {
+            // Full speed animation when moving
+            speedFactor = speed / this.moveSpeed;
+            bobSpeed = speedFactor * 3;
+            bobAmount = speedFactor * 2;
+            squashAmount = 0.08 * speedFactor;
         } else {
-            // Reset to base scale when not moving
-            const currentFlip = this.sprite.flipX;
-            this.sprite.setScale(this.baseScale);
-            this.sprite.setFlipX(currentFlip);
-            this.sprite.displayOriginY = this.sprite.height / 2;
-            this.shadow.setScale(1);
+            // Idle animation at half speed
+            speedFactor = 0.5;
+            bobSpeed = 3;
+            bobAmount = speedFactor * 2;
+            squashAmount = 0.08 * speedFactor;
         }
+        
+        // Update animation time
+        this.animationTime += 0.016 * bobSpeed; // ~60fps delta
+        
+        // Calculate bob offset (vertical bounce)
+        const bobOffset = Math.sin(this.animationTime) * bobAmount;
+        
+        // Calculate squash/stretch
+        const squashFactor = Math.sin(this.animationTime * 2) * squashAmount;
+        
+        // Apply scale with squash effect
+        const scaleX = this.baseScale * (1 + squashFactor);
+        const scaleY = this.baseScale * (1 - squashFactor);
+        
+        // Preserve flip state when setting scale
+        const currentFlip = this.sprite.flipX;
+        this.sprite.setScale(scaleX, scaleY);
+        this.sprite.setFlipX(currentFlip);
+        
+        // Apply vertical bob offset
+        this.sprite.displayOriginY = this.sprite.height / 2 - bobOffset;
+        
+        // Update shadow with bob effect
+        const shadowScale = 1 - Math.abs(bobOffset) * 0.02;
+        this.shadow.setScale(shadowScale);
     }
     
     getPosition() {
