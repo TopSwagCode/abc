@@ -298,6 +298,9 @@ export default class GameScene extends Phaser.Scene {
         // Handle gamepad buttons that should work even when paused
         this.handleGamepadButtonsAlways(time);
         
+        // Update button states for next frame (AFTER checking buttons)
+        this.inputManager.updateButtonStates();
+        
         // Update pause indicator
         this.uiManager.setPauseVisible(this.isPaused);
         

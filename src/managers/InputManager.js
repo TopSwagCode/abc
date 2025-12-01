@@ -120,31 +120,23 @@ export default class InputManager {
     update() {
         this.updateMovement();
         this.updateAiming();
-        this.updateButtonStates();
+        // Note: updateButtonStates is called AFTER button checks in the scene
     }
     
     updateButtonStates() {
-        // Track button states for "just pressed" detection
+        // Save current states as previous states for next frame
         if (!this.gamepad) return;
         
-        const currentStates = {};
+        const newStates = {};
         
-        // Check all configured buttons
+        // Store current button states
         Object.keys(GameConfig.INPUT.GAMEPAD.BUTTONS).forEach(buttonName => {
             const buttonIndex = GameConfig.INPUT.GAMEPAD.BUTTONS[buttonName];
             const button = this.gamepad.buttons[buttonIndex];
-            const isPressed = button ? button.pressed : false;
-            
-            // Log any button that was just pressed
-            const wasPressedBefore = this.previousButtonStates[buttonName] || false;
-            if (isPressed && !wasPressedBefore) {
-                console.log(`🎮 Controller Button Pressed: ${buttonName} (index ${buttonIndex})`);
-            }
-            
-            currentStates[buttonName] = isPressed;
+            newStates[buttonName] = button ? button.pressed : false;
         });
         
-        this.previousButtonStates = currentStates;
+        this.previousButtonStates = newStates;
     }
     
     updateMovement() {
@@ -271,6 +263,10 @@ export default class InputManager {
         const isPressed = button.pressed;
         const wasPressedBefore = this.previousButtonStates[buttonName] || false;
         const justPressed = isPressed && !wasPressedBefore;
+        
+        if (justPressed) {
+            console.log(`🎮 Button ${buttonName} (index ${buttonIndex}) just pressed! isPressed=${isPressed}, wasPressedBefore=${wasPressedBefore}`);
+        }
         
         return justPressed;
     }
