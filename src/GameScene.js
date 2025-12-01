@@ -298,16 +298,16 @@ export default class GameScene extends Phaser.Scene {
         // Handle gamepad buttons that should work even when paused
         this.handleGamepadButtonsAlways(time);
         
+        // Handle level up input (works even when paused) - BEFORE updateButtonStates
+        if (this.levelingSystem.isLevelUpPending()) {
+            this.uiManager.handleLevelUpInput(this.inputManager);
+        }
+        
         // Update button states for next frame (AFTER checking buttons)
         this.inputManager.updateButtonStates();
         
         // Update pause indicator
         this.uiManager.setPauseVisible(this.isPaused);
-        
-        // Handle level up input (works even when paused)
-        if (this.levelingSystem.isLevelUpPending()) {
-            this.uiManager.handleLevelUpInput(this.inputManager);
-        }
         
         // Don't update game if paused or level up is pending
         if (this.isPaused || this.levelingSystem.isLevelUpPending()) {
