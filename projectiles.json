@@ -1,0 +1,86 @@
+{
+  "projectileTypes": [
+    {
+      "id": "basic_ball",
+      "name": "Basic Ball",
+      "description": "Standard bouncing projectile",
+      "unlockLevel": 1,
+      "isStarting": true,
+      "visual": {
+        "color": "0xffffff",
+        "size": 6,
+        "glowColor": "0xcccccc",
+        "trail": false
+      },
+      "stats": {
+        "damage": 20,
+        "speed": 400,
+        "maxBounces": 5,
+        "size": 6,
+        "knockback": 100
+      },
+      "behavior": {
+        "projectilesPerShot": 1,
+        "spreadAngle": 0,
+        "piercing": false,
+        "homing": false
+      }
+    },
+    {
+      "id": "cannon_ball",
+      "name": "Cannon Ball",
+      "description": "Massive slow ball that deals heavy damage",
+      "unlockLevel": 2,
+      "isStarting": false,
+      "visual": {
+        "color": "0xff8800",
+        "size": 12,
+        "glowColor": "0xffaa44",
+        "trail": true,
+        "trailColor": "0xff6600"
+      },
+      "stats": {
+        "damage": 60,
+        "speed": 250,
+        "maxBounces": 3,
+        "size": 12,
+        "knockback": 200
+      },
+      "behavior": {
+        "projectilesPerShot": 1,
+        "spreadAngle": 0,
+        "piercing": false,
+        "homing": false,
+        "areaOfEffect": true,
+        "aoeRadius": 30
+      }
+    },
+    {
+      "id": "twin_shot",
+      "name": "Twin Shot",
+      "description": "Shoots 2 small fast balls at once",
+      "unlockLevel": 2,
+      "isStarting": false,
+      "visual": {
+        "color": "0x00ffff",
+        "size": 4,
+        "glowColor": "0x88ffff",
+        "trail": true,
+        "trailColor": "0x0088ff"
+      },
+      "stats": {
+        "damage": 12,
+        "speed": 500,
+        "maxBounces": 4,
+        "size": 4,
+        "knockback": 60
+      },
+      "behavior": {
+        "projectilesPerShot": 2,
+        "spreadAngle": 15,
+        "piercing": false,
+        "homing": false
+      }
+    }
+  ]
+}

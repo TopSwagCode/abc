@@ -1,0 +1,56 @@
+{
+  "enemyTypes": [
+    {
+      "id": "basic_red",
+      "name": "Basic Walker",
+      "type": "chaser",
+      "color": "0xff4444",
+      "size": 15,
+      "hp": 60,
+      "damage": 10,
+      "baseSpeed": 50,
+      "spawnWeight": 10,
+      "description": "Standard enemy that moves directly toward the player",
+      "sprite": "assets/enemy-red.png",
+      "behavior": {
+        "movementPattern": "direct_chase"
+      }
+    },
+    {
+      "id": "dodger_green",
+      "name": "Dodger",
+      "type": "dodger",
+      "color": "0x44ff44",
+      "size": 12,
+      "hp": 40,
+      "damage": 15,
+      "baseSpeed": 70,
+      "spawnWeight": 6,
+      "description": "Fast enemy that moves in a sinusoidal pattern toward the player",
+      "sprite": "assets/enemy-green.png",
+      "behavior": {
+        "movementPattern": "sinusoidal_chase",
+        "amplitude": 800,
+        "frequency": 2
+      }
+    },
+    {
+      "id": "wanderer_blue",
+      "name": "Wanderer",
+      "type": "wanderer",
+      "color": "0x4444ff",
+      "size": 20,
+      "hp": 80,
+      "damage": 8,
+      "baseSpeed": 40,
+      "spawnWeight": 4,
+      "description": "Tanky enemy that wanders randomly around the map",
+      "sprite": "assets/enemy-blue.png",
+      "behavior": {
+        "movementPattern": "random_wander",
+        "directionChangeInterval": 2000,
+        "randomness": 0.8
+      }
+    }
+  ]
+}

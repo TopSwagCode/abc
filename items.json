@@ -1,0 +1,120 @@
+{
+  "items": [
+    {
+      "id": "basic_ball",
+      "name": "Basic Ball",
+      "description": "Standard bouncing projectile",
+      "unlockLevel": 1,
+      "isStarting": true,
+      "maxLevel": 5,
+      "visual": {
+        "color": "0xffffff",
+        "size": 3,
+        "glowColor": "0xcccccc",
+        "trail": false
+      },
+      "baseStats": {
+        "damage": 20,
+        "speed": 400,
+        "maxBounces": 5,
+        "size": 6,
+        "knockback": 100,
+        "fireRate": 300
+      },
+      "levelUpBonus": {
+        "damage": 5,
+        "speed": 20,
+        "maxBounces": 0,
+        "fireRate": -30
+      },
+      "behavior": {
+        "projectilesPerShot": 1,
+        "spreadAngle": 0,
+        "piercing": false,
+        "homing": false
+      }
+    },
+    {
+      "id": "cannon_ball",
+      "name": "Cannon Ball",
+      "description": "Massive slow ball that deals heavy damage",
+      "unlockLevel": 2,
+      "isStarting": false,
+      "maxLevel": 5,
+      "visual": {
+        "color": "0xff8800",
+        "size": 6,
+        "glowColor": "0xffaa44",
+        "trail": true,
+        "trailColor": "0xff6600"
+      },
+      "baseStats": {
+        "damage": 60,
+        "speed": 250,
+        "maxBounces": 3,
+        "size": 12,
+        "knockback": 200,
+        "fireRate": 800
+      },
+      "levelUpBonus": {
+        "damage": 20,
+        "speed": 10,
+        "maxBounces": 0,
+        "fireRate": -80
+      },
+      "behavior": {
+        "projectilesPerShot": 1,
+        "spreadAngle": 0,
+        "piercing": false,
+        "homing": false,
+        "areaOfEffect": true,
+        "aoeRadius": 30
+      }
+    },
+    {
+      "id": "twin_shot",
+      "name": "Twin Shot",
+      "description": "Shoots 2 small fast balls at once",
+      "unlockLevel": 2,
+      "isStarting": false,
+      "maxLevel": 5,
+      "visual": {
+        "color": "0x00ffff",
+        "size": 1,
+        "glowColor": "0x88ffff",
+        "trail": true,
+        "trailColor": "0x0088ff"
+      },
+      "baseStats": {
+        "damage": 12,
+        "speed": 500,
+        "maxBounces": 4,
+        "size": 1,
+        "knockback": 60,
+        "fireRate": 400
+      },
+      "levelUpBonus": {
+        "damage": 4,
+        "speed": 40,
+        "maxBounces": 0,
+        "fireRate": -40
+      },
+      "behavior": {
+        "projectilesPerShot": 2,
+        "spreadAngle": 15,
+        "piercing": false,
+        "homing": false
+      },
+      "levelUpBehavior": {
+        "level3": {
+          "projectilesPerShot": 3,
+          "spreadAngle": 20
+        },
+        "level5": {
+          "projectilesPerShot": 4,
+          "spreadAngle": 25
+        }
+      }
+    }
+  ]
+}
