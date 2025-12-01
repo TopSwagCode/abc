@@ -292,6 +292,12 @@ export default class GameScene extends Phaser.Scene {
             return;
         }
         
+        // Update input manager FIRST (so button states are tracked)
+        this.inputManager.update();
+        
+        // Handle gamepad buttons that should work even when paused
+        this.handleGamepadButtonsAlways(time);
+        
         // Update pause indicator
         this.uiManager.setPauseVisible(this.isPaused);
         
@@ -300,13 +306,10 @@ export default class GameScene extends Phaser.Scene {
             return;
         }
         
-        // Update input manager
-        this.inputManager.update();
-        
         // Update player
         this.player.update(this.inputManager);
         
-        // Handle gamepad buttons
+        // Handle gamepad buttons (gameplay)
         this.handleGamepadButtons(time);
         
         // Auto-fire items
@@ -340,23 +343,16 @@ export default class GameScene extends Phaser.Scene {
     }
     
     /**
-     * Handle gamepad button input
+     * Handle gamepad buttons that should work even when paused
      */
-    handleGamepadButtons(time) {
-        // A Button - Manual shooting
-        if (this.inputManager.isButtonPressed('A') && !this.itemManager.isAutoFireEnabled()) {
-            this.itemManager.handleItemShooting(
-                time,
-                this.player.getRotation(),
-                this.player.getPosition(),
-                this.balls
-            );
-        }
-        
-        // X Button - Toggle auto-fire
+    handleGamepadButtonsAlways(time) {
+        // X Button - Toggle auto-fire (works even when paused)
         if (this.inputManager.wasButtonJustPressed('X')) {
+            console.log('🎮 X button detected in handleGamepadButtonsAlways');
+            const wasEnabled = this.itemManager.isAutoFireEnabled();
             this.itemManager.toggleAutoFire();
-            console.log('🔫 Auto-fire:', this.itemManager.isAutoFireEnabled() ? 'ON' : 'OFF');
+            const isEnabled = this.itemManager.isAutoFireEnabled();
+            console.log('🔫 Auto-fire toggle:', wasEnabled, '=>', isEnabled);
         }
         
         // START Button - Toggle pause
@@ -370,6 +366,21 @@ export default class GameScene extends Phaser.Scene {
                 }
                 this.uiManager.setPauseVisible(this.isPaused);
             }
+        }
+    }
+    
+    /**
+     * Handle gamepad button input (gameplay only)
+     */
+    handleGamepadButtons(time) {
+        // A Button - Manual shooting
+        if (this.inputManager.isButtonPressed('A') && !this.itemManager.isAutoFireEnabled()) {
+            this.itemManager.handleItemShooting(
+                time,
+                this.player.getRotation(),
+                this.player.getPosition(),
+                this.balls
+            );
         }
         
         // Right Trigger - Auto-fire while held
