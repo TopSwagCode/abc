@@ -3,9 +3,9 @@
  * Handles all input (gamepad, keyboard, mouse) and mode switching
  */
 
-import { GameConfig } from '../config/GameConfig.js';
+import GameConfig from '../config/GameConfig.js';
 
-export class InputManager {
+export default class InputManager {
     constructor(scene) {
         this.scene = scene;
         this.gamepad = null;
@@ -178,10 +178,10 @@ export class InputManager {
             const pointer = this.scene.input.activePointer;
             const player = this.scene.player; // Access player from scene
             
-            if (player) {
+            if (player && player.sprite) {
                 angle = Phaser.Math.Angle.Between(
-                    player.x,
-                    player.y,
+                    player.sprite.x,
+                    player.sprite.y,
                     pointer.x,
                     pointer.y
                 );
@@ -195,6 +195,13 @@ export class InputManager {
     
     getMovement() {
         return this.movement;
+    }
+    
+    getAim() {
+        return {
+            angle: this.aimAngle,
+            isGamepad: this.inputMode === 'controller'
+        };
     }
     
     getAimAngle() {
@@ -219,5 +226,3 @@ export class InputManager {
         return this.gamepad.buttons[buttonIndex]?.justDown || false;
     }
 }
-
-export default InputManager;

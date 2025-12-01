@@ -3,11 +3,13 @@
  * Handles player entity, movement, rotation, health, and visual representation
  */
 
-import { GameConfig } from '../config/GameConfig.js';
+import GameConfig from '../config/GameConfig.js';
 
-export class Player {
+export default class Player {
     constructor(scene, x, y) {
         this.scene = scene;
+        
+        console.log('🎮 Creating player at', x, y);
         
         // Stats
         this.maxHP = GameConfig.PLAYER.MAX_HP;
@@ -16,6 +18,13 @@ export class Player {
         
         // Create sprite
         this.sprite = this.createSprite(x, y);
+        
+        if (!this.sprite) {
+            console.error('❌ Failed to create player sprite!');
+            return;
+        }
+        
+        console.log('✅ Player sprite created successfully');
         
         // Create shadow
         this.shadow = this.scene.add.circle(
@@ -42,43 +51,63 @@ export class Player {
     createSprite(x, y) {
         let sprite;
         
+        console.log('🔨 Creating sprite, checking textures...');
+        console.log('  player_sprite exists:', this.scene.textures.exists('player_sprite'));
+        console.log('  player exists:', this.scene.textures.exists('player'));
+        
         // Try to use custom player sprite if available
-        if (!this.scene.textures.exists('player')) {
-            if (this.scene.textures.exists('player_sprite')) {
-                const spriteTexture = this.scene.textures.get('player_sprite');
-                const frame = spriteTexture.get();
-                
-                // Calculate scale to make sprite 30 pixels
-                const targetSize = GameConfig.PLAYER.SIZE;
-                const scale = targetSize / Math.max(frame.width, frame.height);
-                
-                sprite = this.scene.physics.add.sprite(x, y, 'player_sprite');
-                sprite.setScale(scale);
-                sprite.setCircle(targetSize / 2);
-            } else {
-                // Generate simple circle texture
+        if (this.scene.textures.exists('player_sprite')) {
+            console.log('  Using player_sprite texture');
+            const spriteTexture = this.scene.textures.get('player_sprite');
+            const frame = spriteTexture.get();
+            
+            // Calculate scale to make sprite 30 pixels
+            const targetSize = GameConfig.PLAYER.SIZE;
+            const scale = targetSize / Math.max(frame.width, frame.height);
+            
+            sprite = this.scene.physics.add.sprite(x, y, 'player_sprite');
+            sprite.setScale(scale);
+            sprite.setCircle(targetSize / 2);
+        } else {
+            console.log('  Generating fallback player texture');
+            // Generate simple circle texture if it doesn't exist
+            if (!this.scene.textures.exists('player')) {
                 const graphics = this.scene.add.graphics();
                 graphics.fillStyle(0x00ff00);
                 graphics.fillCircle(16, 16, 16);
                 graphics.generateTexture('player', 32, 32);
                 graphics.destroy();
-                
-                sprite = this.scene.physics.add.sprite(x, y, 'player');
+                console.log('  Created player texture');
             }
-        } else {
+            
             sprite = this.scene.physics.add.sprite(x, y, 'player');
+        }
+        
+        if (!sprite) {
+            console.error('❌ Failed to create player sprite!');
+            return null;
         }
         
         sprite.setCollideWorldBounds(true);
         sprite.setDepth(GameConfig.DEPTH.PLAYER);
+        sprite.setVisible(true); // Explicitly set visible
+        
+        console.log('  Sprite properties:', {
+            x: sprite.x,
+            y: sprite.y,
+            visible: sprite.visible,
+            depth: sprite.depth,
+            alpha: sprite.alpha
+        });
         
         return sprite;
     }
     
     update(inputManager) {
-        // Update previous position for collision detection
-        this.sprite.prevX = this.sprite.x;
-        this.sprite.prevY = this.sprite.y;
+        if (!this.sprite) {
+            console.error('Player sprite is null in update!');
+            return;
+        }
         
         // Handle movement
         this.handleMovement(inputManager);
@@ -97,45 +126,51 @@ export class Player {
         this.crosshair.rotation = this.sprite.rotation;
     }
     
+    updatePreviousPosition() {
+        // Update previous position AFTER collision checks
+        // This is called from GameScene after collision detection
+        if (this.sprite) {
+            this.sprite.prevX = this.sprite.x;
+            this.sprite.prevY = this.sprite.y;
+        }
+    }
+    
     handleMovement(inputManager) {
         const movement = inputManager.getMovement();
         
-        this.sprite.setVelocity(
-            movement.x * this.moveSpeed,
-            movement.y * this.moveSpeed
-        );
+        if (movement.x !== 0 || movement.y !== 0) {
+            // Normalize diagonal movement
+            const magnitude = Math.sqrt(movement.x * movement.x + movement.y * movement.y);
+            const normalizedX = movement.x / magnitude;
+            const normalizedY = movement.y / magnitude;
+            
+            this.sprite.setVelocity(
+                normalizedX * this.moveSpeed,
+                normalizedY * this.moveSpeed
+            );
+        } else {
+            this.sprite.setVelocity(0, 0);
+        }
     }
     
     handleRotation(inputManager) {
-        this.sprite.rotation = inputManager.getAimAngle();
-    }
-    
-    takeDamage(amount) {
-        this.hp -= amount;
-        if (this.hp < 0) this.hp = 0;
+        const aim = inputManager.getAim();
         
-        return this.hp <= 0; // Returns true if dead
-    }
-    
-    heal(amount) {
-        this.hp += amount;
-        if (this.hp > this.maxHP) this.hp = this.maxHP;
-    }
-    
-    increaseMoveSpeed(amount) {
-        this.moveSpeed += amount;
-    }
-    
-    increaseMaxHP(amount) {
-        this.maxHP += amount;
-        this.hp += amount; // Also heal by that amount
+        if (aim.angle !== null) {
+            this.sprite.rotation = aim.angle;
+            
+            // Show/hide crosshair based on input method
+            this.crosshair.setVisible(aim.isGamepad);
+        }
     }
     
     getPosition() {
+        if (!this.sprite) return { x: 0, y: 0 };
         return { x: this.sprite.x, y: this.sprite.y };
     }
     
     getRotation() {
+        if (!this.sprite) return 0;
         return this.sprite.rotation;
     }
     
@@ -151,6 +186,46 @@ export class Player {
         return this.moveSpeed;
     }
     
+    setMoveSpeed(speed) {
+        this.moveSpeed = speed;
+    }
+    
+    setHP(hp) {
+        this.hp = Math.max(0, Math.min(hp, this.maxHP));
+    }
+    
+    takeDamage(damage) {
+        this.hp -= damage;
+        
+        if (this.hp <= 0) {
+            this.hp = 0;
+            return true; // Player is dead
+        }
+        
+        return false; // Player is still alive
+    }
+    
+    heal(amount) {
+        this.hp = Math.min(this.hp + amount, this.maxHP);
+    }
+    
+    increaseMaxHP(amount) {
+        this.maxHP += amount;
+        this.hp += amount; // Also increase current HP
+        // Make sure HP doesn't exceed new max
+        this.hp = Math.min(this.hp, this.maxHP);
+    }
+    
+    create() {
+        // Empty method for compatibility - initialization happens in constructor
+    }
+    
+    reset() {
+        this.hp = this.maxHP;
+        this.sprite.setPosition(GameConfig.MAP_WIDTH / 2, GameConfig.MAP_HEIGHT / 2);
+        this.sprite.setVelocity(0, 0);
+    }
+    
     setCrosshairVisible(visible) {
         this.crosshair.setVisible(visible);
     }
@@ -161,5 +236,3 @@ export class Player {
         this.crosshair.destroy();
     }
 }
-
-export default Player;

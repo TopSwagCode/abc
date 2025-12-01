@@ -25,11 +25,14 @@ export default class ItemManager {
      */
     async loadItemsConfig() {
         try {
-            const response = await fetch('items.json');
-            if (!response.ok) {
-                throw new Error(`Failed to load items.json: ${response.statusText}`);
+            // Get the config from Phaser's cache (already loaded in preload)
+            const itemConfig = this.scene.cache.json.get('itemConfig');
+            
+            if (!itemConfig || !itemConfig.items) {
+                throw new Error('Item config not found in cache');
             }
-            this.itemTypes = await response.json();
+            
+            this.itemTypes = itemConfig.items;
             console.log(`✅ Loaded ${this.itemTypes.length} item types`);
             
             // Initialize with starting item
@@ -147,6 +150,10 @@ export default class ItemManager {
             ball.setTint(0xffffff);
             ball.setDepth(GameConfig.DEPTH.PROJECTILES);
             ball.setAlpha(1.0);
+            
+            // Initialize previous position for collision detection
+            ball.prevX = playerPosition.x;
+            ball.prevY = playerPosition.y;
             
             // Set velocity
             ball.setVelocity(

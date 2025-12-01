@@ -1,6 +1,28 @@
-# Breakout x Vampire Survivors - Prototype
+# Breakout x Vampire Survivors
 
-A simple 2D browser game mixing mechanics from Breakout and Vampire Survivors, built with Phaser.js.
+A 2D browser game mixing mechanics from Breakout and Vampire Survivors, built with Phaser.js using a **component-based architecture**.
+
+## 🏗️ Architecture
+
+This game uses a **modular, event-driven architecture** with separate components for better maintainability:
+
+```
+src/
+├── GameScene.js              # Main orchestrator
+├── config/GameConfig.js      # All constants
+├── components/Player.js      # Player entity
+├── managers/                 # Core game systems
+│   ├── InputManager.js
+│   ├── EnemyManager.js
+│   ├── CollisionManager.js
+│   ├── ItemManager.js
+│   └── UIManager.js
+└── systems/                  # Game mechanics
+    ├── LevelingSystem.js
+    └── MapSystem.js
+```
+
+See **[Quick Reference](docs/QUICK_REFERENCE.md)** for component API docs.
 
 ## 📚 Documentation
 
@@ -8,7 +30,9 @@ Comprehensive documentation is available in the [`docs/`](docs/) folder:
 
 ### Getting Started
 - **[Quick Start Guide](docs/QUICKSTART.md)** - Get up and running quickly
+- **[Quick Reference](docs/QUICK_REFERENCE.md)** - Component API and architecture guide ⭐ NEW
 - **[Project Overview](docs/PROJECT_OVERVIEW.md)** - High-level architecture and design
+- **[Refactoring Complete](docs/REFACTORING_COMPLETE.md)** - Details on the new architecture ⭐ NEW
 - **[Changelog](docs/CHANGELOG.md)** - Version history and updates
 
 ### Feature Guides

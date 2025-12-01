@@ -3,6 +3,8 @@
  * Handles all collision detection including continuous swept collision
  */
 
+import GameConfig from '../config/GameConfig.js';
+
 export class CollisionManager {
     constructor(scene) {
         this.scene = scene;
@@ -10,6 +12,7 @@ export class CollisionManager {
     
     /**
      * Check ball-enemy collisions with continuous detection
+     * Detects only the FIRST/CLOSEST collision to prevent multiple hits per frame
      */
     checkBallEnemyCollisions(balls, enemies) {
         const ballsArray = balls.children.entries;
@@ -18,20 +21,46 @@ export class CollisionManager {
         ballsArray.forEach(ball => {
             if (!ball.active) return;
             
+            // Get ball movement vector
+            const dx = ball.x - ball.prevX;
+            const dy = ball.y - ball.prevY;
+            
+            // If ball hasn't moved much, skip expensive collision check
+            if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return;
+            
+            let closestCollision = null;
+            let closestT = 1.0; // Parametric time (0 = start, 1 = end)
+            
+            // Check collision with all enemies, find the closest one
             enemiesArray.forEach(enemy => {
                 if (!enemy.active) return;
                 
+                // Get ball and enemy radii
+                const ballRadius = ball.displayWidth / 2;
+                const enemyRadius = enemy.enemyType ? enemy.enemyType.size : 15;
+                
                 // Use continuous collision detection
                 const collision = this.sweptCircleCircle(
-                    ball.prevX, ball.prevY, ball.body.radius,
+                    ball.prevX, ball.prevY, ballRadius,
                     ball.x, ball.y,
-                    enemy.x, enemy.y, enemy.body.radius
+                    enemy.x, enemy.y, enemyRadius
                 );
                 
-                if (collision) {
-                    this.handleBallEnemyHit(ball, enemy);
+                if (collision && collision.t < closestT) {
+                    closestT = collision.t;
+                    closestCollision = { enemy: enemy, t: collision.t };
                 }
             });
+            
+            // Handle the earliest collision only
+            if (closestCollision) {
+                // Move ball to collision point
+                ball.x = ball.prevX + dx * closestCollision.t;
+                ball.y = ball.prevY + dy * closestCollision.t;
+                
+                // Handle collision
+                this.handleBallEnemyHit(ball, closestCollision.enemy);
+            }
         });
     }
     
@@ -43,30 +72,36 @@ export class CollisionManager {
         const playerPos = player.getPosition();
         const enemiesArray = enemies.children.entries;
         
+        // Get player radius
+        const playerRadius = GameConfig.PLAYER.SIZE / 2;
+        
         enemiesArray.forEach(enemy => {
             if (!enemy.active) return;
             
             let hasCollision = false;
             
+            // Get enemy radius
+            const enemyRadius = enemy.enemyType ? enemy.enemyType.size : 15;
+            
             // Check if player is moving
             const playerMoving = Math.abs(playerSprite.body.velocity.x) > 0.1 || 
                                 Math.abs(playerSprite.body.velocity.y) > 0.1;
             
-            if (playerMoving) {
+            if (playerMoving && playerSprite.prevX !== undefined && playerSprite.prevY !== undefined) {
                 // Use continuous collision for moving player
                 const collision = this.sweptCircleCircle(
-                    playerSprite.prevX, playerSprite.prevY, playerSprite.body.radius,
+                    playerSprite.prevX, playerSprite.prevY, playerRadius,
                     playerPos.x, playerPos.y,
-                    enemy.x, enemy.y, enemy.body.radius
+                    enemy.x, enemy.y, enemyRadius
                 );
                 hasCollision = collision !== null;
             } else {
-                // Use simple distance check for stationary player
+                // Use simple distance check for stationary player or if prevX/prevY not set
                 const distance = Phaser.Math.Distance.Between(
                     playerPos.x, playerPos.y,
                     enemy.x, enemy.y
                 );
-                const minDistance = playerSprite.body.radius + enemy.body.radius;
+                const minDistance = playerRadius + enemyRadius;
                 hasCollision = distance < minDistance;
             }
             
@@ -131,6 +166,9 @@ export class CollisionManager {
         
         const damage = ball.damage;
         
+        // Apply damage to enemy
+        enemy.hp -= damage;
+        
         // Visual feedback - flash red
         enemy.setTint(0xff0000);
         this.scene.time.delayedCall(250, () => {
@@ -146,6 +184,7 @@ export class CollisionManager {
             stroke: '#000000',
             strokeThickness: 2
         });
+        damageText.setOrigin(0.5);
         damageText.setDepth(100);
         
         // Animate damage text floating up and fading
@@ -158,24 +197,42 @@ export class CollisionManager {
             onComplete: () => damageText.destroy()
         });
         
-        // Knockback effect
+        // Knockback effect on enemy
         const knockback = ball.knockback || 100;
-        const angle = Math.atan2(ball.body.velocity.y, ball.body.velocity.x);
+        const knockbackAngle = Phaser.Math.Angle.Between(ball.x, ball.y, enemy.x, enemy.y);
         enemy.setVelocity(
-            enemy.body.velocity.x + Math.cos(angle) * knockback,
-            enemy.body.velocity.y + Math.sin(angle) * knockback
+            Math.cos(knockbackAngle) * knockback,
+            Math.sin(knockbackAngle) * knockback
         );
+        
+        // Kill enemy if HP <= 0
+        if (enemy.hp <= 0) {
+            // Destroy health bars and shadow
+            if (enemy.healthBarBg) enemy.healthBarBg.destroy();
+            if (enemy.healthBarFill) enemy.healthBarFill.destroy();
+            if (enemy.shadow) enemy.shadow.destroy();
+            
+            enemy.destroy();
+            
+            // Award XP
+            this.scene.events.emit('enemyKilled', enemy);
+        }
         
         // Handle ball bounce
         ball.bounceCount++;
         if (ball.bounceCount >= ball.maxBounces) {
             ball.destroy();
         } else {
-            // Bounce off enemy
-            ball.setVelocity(-ball.body.velocity.x * 0.8, -ball.body.velocity.y * 0.8);
+            // Bounce ball away from enemy (reflect direction)
+            const bounceAngle = Phaser.Math.Angle.Between(enemy.x, enemy.y, ball.x, ball.y);
+            const currentSpeed = ball.body.speed; // Use current physics speed
+            ball.setVelocity(
+                Math.cos(bounceAngle) * currentSpeed,
+                Math.sin(bounceAngle) * currentSpeed
+            );
         }
         
-        // Emit event for damage dealing
+        // Emit event for damage dealing (for health bar updates)
         this.scene.events.emit('enemyDamaged', enemy, damage);
     }
     
@@ -199,7 +256,7 @@ export class CollisionManager {
         // Screen shake on hit
         this.scene.cameras.main.shake(100, 0.005);
         
-        // Knockback
+        // Knockback player away from enemy
         const angle = Phaser.Math.Angle.Between(
             enemy.x, enemy.y,
             player.sprite.x, player.sprite.y
@@ -209,14 +266,15 @@ export class CollisionManager {
             player.sprite.body.velocity.y + Math.sin(angle) * 200
         );
         
-        // Emit events
-        this.scene.events.emit('playerDamaged', damage);
+        // Destroy enemy and its components (like in original game)
+        if (enemy.healthBarBg) enemy.healthBarBg.destroy();
+        if (enemy.healthBarFill) enemy.healthBarFill.destroy();
+        if (enemy.shadow) enemy.shadow.destroy();
+        enemy.destroy();
         
+        // Emit events
         if (isDead) {
             this.scene.events.emit('playerDied');
-        } else {
-            // Destroy enemy on hit (like in original game)
-            this.scene.events.emit('enemyKilled', enemy);
         }
     }
 }

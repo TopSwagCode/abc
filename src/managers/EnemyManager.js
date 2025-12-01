@@ -3,9 +3,9 @@
  * Handles enemy spawning, management, AI, and behavior
  */
 
-import { GameConfig } from '../config/GameConfig.js';
+import GameConfig from '../config/GameConfig.js';
 
-export class EnemyManager {
+export default class EnemyManager {
     constructor(scene) {
         this.scene = scene;
         
@@ -25,9 +25,14 @@ export class EnemyManager {
     
     async loadEnemyConfig() {
         try {
-            const response = await fetch('enemies.json');
-            this.enemyConfig = await response.json();
-            this.enemyTypes = this.enemyConfig.enemies;
+            // Get the config from Phaser's cache (already loaded in preload)
+            this.enemyConfig = this.scene.cache.json.get('enemyConfig');
+            
+            if (!this.enemyConfig || !this.enemyConfig.enemyTypes) {
+                throw new Error('Enemy config not found in cache');
+            }
+            
+            this.enemyTypes = this.enemyConfig.enemyTypes;
             console.log('✅ Loaded enemy types:', this.enemyTypes.length);
         } catch (error) {
             console.error('Failed to load enemies.json:', error);
@@ -300,5 +305,3 @@ export class EnemyManager {
         });
     }
 }
-
-export default EnemyManager;
