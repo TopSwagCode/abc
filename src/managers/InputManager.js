@@ -133,7 +133,15 @@ export default class InputManager {
         Object.keys(GameConfig.INPUT.GAMEPAD.BUTTONS).forEach(buttonName => {
             const buttonIndex = GameConfig.INPUT.GAMEPAD.BUTTONS[buttonName];
             const button = this.gamepad.buttons[buttonIndex];
-            currentStates[buttonName] = button ? button.pressed : false;
+            const isPressed = button ? button.pressed : false;
+            
+            // Log any button that was just pressed
+            const wasPressedBefore = this.previousButtonStates[buttonName] || false;
+            if (isPressed && !wasPressedBefore) {
+                console.log(`🎮 Controller Button Pressed: ${buttonName} (index ${buttonIndex})`);
+            }
+            
+            currentStates[buttonName] = isPressed;
         });
         
         this.previousButtonStates = currentStates;
@@ -256,7 +264,6 @@ export default class InputManager {
         
         const button = this.gamepad.buttons[buttonIndex];
         if (!button) {
-            console.warn(`Button at index ${buttonIndex} not found on gamepad`);
             return false;
         }
         
@@ -264,10 +271,6 @@ export default class InputManager {
         const isPressed = button.pressed;
         const wasPressedBefore = this.previousButtonStates[buttonName] || false;
         const justPressed = isPressed && !wasPressedBefore;
-        
-        if (justPressed) {
-            console.log(`🎮 Button ${buttonName} (index ${buttonIndex}) just pressed!`);
-        }
         
         return justPressed;
     }
