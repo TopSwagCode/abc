@@ -101,6 +101,8 @@ export default class EffectsManager {
             enemy.poisonStacks = 0;
         }
         
+        const isFirstStack = enemy.poisonStacks === 0;
+        
         // Add a poison stack (up to max)
         if (enemy.poisonStacks < poisonData.maxStacks) {
             enemy.poisonStacks++;
@@ -111,9 +113,16 @@ export default class EffectsManager {
         enemy.poisonTickInterval = poisonData.tickInterval;
         enemy.poisonDuration = poisonData.duration;
         
-        // Reset timers
-        enemy.poisonLastTickTime = currentTime;
-        enemy.poisonExpiryTime = currentTime + poisonData.duration;
+        // Only initialize tick timer on first stack
+        if (isFirstStack) {
+            enemy.poisonLastTickTime = currentTime;
+            enemy.poisonExpiryTime = currentTime + poisonData.duration;
+        } else {
+            // Extend the expiry time instead of resetting it
+            // This keeps poison active as long as you keep hitting
+            enemy.poisonExpiryTime = currentTime + poisonData.duration;
+            // Don't reset poisonLastTickTime - let ticks continue naturally
+        }
         
         // Apply green tint to show poison
         enemy.setTint(0x88ff88);
