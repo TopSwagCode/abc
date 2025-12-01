@@ -60,7 +60,11 @@ export const GameConfig = {
                 LT: 6,
                 RT: 7,
                 SELECT: 8,
-                START: 9
+                START: 9,
+                LEFT: 14,   // D-pad left
+                RIGHT: 15,  // D-pad right
+                UP: 12,     // D-pad up
+                DOWN: 13    // D-pad down
             }
         },
         MOUSE: {

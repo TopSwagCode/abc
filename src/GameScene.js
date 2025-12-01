@@ -304,6 +304,11 @@ export default class GameScene extends Phaser.Scene {
         // Update pause indicator
         this.uiManager.setPauseVisible(this.isPaused);
         
+        // Handle level up input (works even when paused)
+        if (this.levelingSystem.isLevelUpPending()) {
+            this.uiManager.handleLevelUpInput(this.inputManager);
+        }
+        
         // Don't update game if paused or level up is pending
         if (this.isPaused || this.levelingSystem.isLevelUpPending()) {
             return;

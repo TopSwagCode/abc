@@ -18,6 +18,13 @@ export default class UIManager {
     constructor(scene) {
         this.scene = scene;
         this.uiElements = {};
+        
+        // Level up selection tracking
+        this.currentUpgradeSelection = 0;
+        this.upgrades = [];
+        this.onUpgradeSelect = null;
+        this.stickMoved = false;
+        this.selectionKeyPressed = false;
     }
     
     /**
@@ -338,9 +345,11 @@ export default class UIManager {
         this.uiElements.levelUpTitle.setVisible(false);
         
         // Subtitle
-        this.uiElements.levelUpSubtitle = this.scene.add.text(camWidth / 2, 160, 'Choose an upgrade:', {
-            fontSize: '24px',
-            fill: '#ffffff'
+        this.uiElements.levelUpSubtitle = this.scene.add.text(camWidth / 2, 160, 
+            'Choose an upgrade:\n[A/D or Arrows to select | Space/Enter or A button to confirm]', {
+            fontSize: '20px',
+            fill: '#ffffff',
+            align: 'center'
         });
         this.uiElements.levelUpSubtitle.setOrigin(0.5);
         this.uiElements.levelUpSubtitle.setScrollFactor(0);
@@ -393,6 +402,11 @@ export default class UIManager {
         this.uiElements.levelUpTitle.setVisible(true);
         this.uiElements.levelUpSubtitle.setVisible(true);
         
+        // Track current selection for keyboard/controller
+        this.currentUpgradeSelection = 0;
+        this.upgrades = upgrades;
+        this.onUpgradeSelect = onSelect;
+        
         // Display options
         upgrades.forEach((upgrade, index) => {
             const option = this.uiElements.upgradeOptions[index];
@@ -411,14 +425,113 @@ export default class UIManager {
             
             // Remove previous listeners
             option.btn.removeAllListeners('pointerdown');
+            option.btn.removeAllListeners('pointerover');
+            option.btn.removeAllListeners('pointerout');
             
             // Add click handler
             option.btn.on('pointerdown', () => {
-                upgrade.apply();
-                onSelect();
-                this.hideLevelUpScreen();
+                this.selectUpgrade(index);
+            });
+            
+            // Add hover effects
+            option.btn.on('pointerover', () => {
+                this.currentUpgradeSelection = index;
+                this.updateUpgradeHighlight();
+            });
+            option.btn.on('pointerout', () => {
+                if (this.currentUpgradeSelection === index) {
+                    this.updateUpgradeHighlight();
+                }
             });
         });
+        
+        // Highlight first option by default
+        this.updateUpgradeHighlight();
+    }
+    
+    /**
+     * Update visual highlight for current selection
+     */
+    updateUpgradeHighlight() {
+        this.uiElements.upgradeOptions.forEach((option, index) => {
+            if (index === this.currentUpgradeSelection && option.btn.visible) {
+                option.btn.setFillStyle(0x555555);
+            } else {
+                option.btn.setFillStyle(0x333333);
+            }
+        });
+    }
+    
+    /**
+     * Select upgrade by index (called by mouse or keyboard/controller)
+     */
+    selectUpgrade(index) {
+        if (index < 0 || index >= this.upgrades.length) return;
+        
+        const upgrade = this.upgrades[index];
+        upgrade.apply();
+        this.onUpgradeSelect();
+        this.hideLevelUpScreen();
+    }
+    
+    /**
+     * Handle keyboard/controller input for level up screen
+     */
+    handleLevelUpInput(inputManager) {
+        if (!this.uiElements.levelUpOverlay.visible) return;
+        
+        const numOptions = this.upgrades.length;
+        
+        // Keyboard - Move selection left (A or Left Arrow)
+        const leftPressed = Phaser.Input.Keyboard.JustDown(inputManager.wasd.a) || 
+                           Phaser.Input.Keyboard.JustDown(inputManager.cursors.left);
+        if (leftPressed || inputManager.wasButtonJustPressed('LEFT')) {
+            this.currentUpgradeSelection = Math.max(0, this.currentUpgradeSelection - 1);
+            this.updateUpgradeHighlight();
+        }
+        
+        // Keyboard - Move selection right (D or Right Arrow)
+        const rightPressed = Phaser.Input.Keyboard.JustDown(inputManager.wasd.d) || 
+                            Phaser.Input.Keyboard.JustDown(inputManager.cursors.right);
+        if (rightPressed || inputManager.wasButtonJustPressed('RIGHT')) {
+            this.currentUpgradeSelection = Math.min(numOptions - 1, this.currentUpgradeSelection + 1);
+            this.updateUpgradeHighlight();
+        }
+        
+        // Gamepad left stick for selection
+        if (inputManager.gamepad) {
+            const leftStick = inputManager.gamepad.leftStick;
+            const deadzone = 0.3;
+            
+            // Left
+            if (leftStick.x < -deadzone && !this.stickMoved) {
+                this.currentUpgradeSelection = Math.max(0, this.currentUpgradeSelection - 1);
+                this.updateUpgradeHighlight();
+                this.stickMoved = true;
+            }
+            // Right
+            else if (leftStick.x > deadzone && !this.stickMoved) {
+                this.currentUpgradeSelection = Math.min(numOptions - 1, this.currentUpgradeSelection + 1);
+                this.updateUpgradeHighlight();
+                this.stickMoved = true;
+            }
+            // Reset stick moved flag when stick returns to center
+            else if (Math.abs(leftStick.x) < deadzone) {
+                this.stickMoved = false;
+            }
+        }
+        
+        // Select with keyboard (Space or Enter)
+        const spaceKey = this.scene.input.keyboard.addKey('SPACE');
+        const enterKey = this.scene.input.keyboard.addKey('ENTER');
+        if (Phaser.Input.Keyboard.JustDown(spaceKey) || Phaser.Input.Keyboard.JustDown(enterKey)) {
+            this.selectUpgrade(this.currentUpgradeSelection);
+        }
+        
+        // Select with controller A button
+        if (inputManager.wasButtonJustPressed('A')) {
+            this.selectUpgrade(this.currentUpgradeSelection);
+        }
     }
     
     /**
