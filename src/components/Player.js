@@ -224,6 +224,10 @@ export default class Player {
         this.hp = this.maxHP;
         this.sprite.setPosition(GameConfig.MAP_WIDTH / 2, GameConfig.MAP_HEIGHT / 2);
         this.sprite.setVelocity(0, 0);
+        
+        // Reset previous position for collision detection
+        this.prevX = GameConfig.MAP_WIDTH / 2;
+        this.prevY = GameConfig.MAP_HEIGHT / 2;
     }
     
     setCrosshairVisible(visible) {

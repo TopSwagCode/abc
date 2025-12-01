@@ -74,6 +74,23 @@ export default class GameScene extends Phaser.Scene {
     async create() {
         console.log('🎮 Initializing GameScene with component architecture...');
         
+        // Reset game state (important for restart)
+        this.gameOver = false;
+        this.isPaused = false;
+        this.gameTime = 0;
+        
+        // Reset player stats
+        this.playerStats = {
+            moveSpeed: GameConfig.PLAYER.MOVE_SPEED,
+            maxHP: GameConfig.PLAYER.MAX_HP
+        };
+        
+        // Clean up old map if it exists
+        if (this.mapSystem && this.mapSystem.mapBackground) {
+            this.mapSystem.mapBackground.destroy();
+            this.mapSystem.mapBackground = null;
+        }
+        
         // === CREATE MAP ===
         this.mapSystem.createMap('grass');
         
@@ -188,6 +205,10 @@ export default class GameScene extends Phaser.Scene {
      * Setup keyboard and mouse input handlers
      */
     setupInputHandlers() {
+        // Remove existing listeners to prevent duplicates on restart
+        this.input.keyboard.removeAllListeners();
+        this.input.removeAllListeners('pointerdown');
+        
         // Pause toggle (P key)
         this.input.keyboard.on('keydown-P', () => {
             if (!this.gameOver && !this.levelingSystem.isLevelUpPending()) {
@@ -221,7 +242,8 @@ export default class GameScene extends Phaser.Scene {
         this.input.on('pointerdown', () => {
             // Game over - click to restart
             if (this.gameOver) {
-                this.scene.restart();
+                // Reset game state without destroying scene
+                this.resetGameState();
                 return;
             }
             
@@ -417,7 +439,9 @@ export default class GameScene extends Phaser.Scene {
         this.debugText.setVisible(true);
         
         // Draw collision circles
-        this.debugGraphics.clear();
+        if (this.debugGraphics) {
+            this.debugGraphics.clear();
+        }
         
         // Player
         this.debugGraphics.lineStyle(2, 0x00ff00, 1);
@@ -513,34 +537,17 @@ export default class GameScene extends Phaser.Scene {
             maxHP: GameConfig.PLAYER.MAX_HP
         };
         
-        // Reset managers
+        // Reset managers (this will clear enemies properly with their graphics)
+        this.enemyManager.reset();
         this.itemManager.reset();
         this.levelingSystem.reset();
-        this.enemyManager.reset();
         
-        // Clear physics groups
+        // Clear physics groups (enemies already cleared above, just clear balls)
         this.balls.clear(true, true);
-        this.enemies.clear(true, true);
         
         // Reset UI
         this.uiManager.setGameOverVisible(false);
         this.uiManager.hideLevelUpScreen();
         this.events.emit('itemsChanged', this.itemManager.getPlayerItems());
-    }
-    
-    /**
-     * Cleanup when scene shuts down (before restart)
-     */
-    shutdown() {
-        console.log('🧹 Cleaning up GameScene...');
-        
-        // Remove all event listeners
-        this.events.off();
-        this.input.off('pointerdown');
-        this.input.keyboard.off('keydown-P');
-        this.input.keyboard.off('keydown-O');
-        this.input.keyboard.off('keydown-F');
-        
-        console.log('✅ GameScene cleanup complete');
     }
 }

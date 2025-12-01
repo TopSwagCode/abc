@@ -173,6 +173,7 @@ export default class EnemyManager {
     }
     
     updateEnemyHealthBar(enemy) {
+        if (!enemy || !enemy.active) return;
         if (!enemy.healthBarBg || !enemy.healthBarFill) return;
         
         const healthBarWidth = enemy.enemyType.size * 2;
@@ -182,28 +183,38 @@ export default class EnemyManager {
         const hpPercent = enemy.hp / enemy.maxHP;
         
         // Background
-        enemy.healthBarBg.clear();
-        enemy.healthBarBg.fillStyle(0x000000, 0.5);
-        enemy.healthBarBg.fillRect(
-            enemy.x - healthBarWidth / 2,
-            enemy.y + healthBarY,
-            healthBarWidth,
-            healthBarHeight
-        );
+        try {
+            enemy.healthBarBg.clear();
+            enemy.healthBarBg.fillStyle(0x000000, 0.5);
+            enemy.healthBarBg.fillRect(
+                enemy.x - healthBarWidth / 2,
+                enemy.y + healthBarY,
+                healthBarWidth,
+                healthBarHeight
+            );
+        } catch (e) {
+            // Graphics object was destroyed
+            return;
+        }
         
         // Fill
-        enemy.healthBarFill.clear();
-        let barColor = 0x00ff00;
-        if (hpPercent < 0.3) barColor = 0xff0000;
-        else if (hpPercent < 0.6) barColor = 0xff8800;
-        
-        enemy.healthBarFill.fillStyle(barColor);
-        enemy.healthBarFill.fillRect(
-            enemy.x - healthBarWidth / 2,
-            enemy.y + healthBarY,
-            healthBarWidth * hpPercent,
-            healthBarHeight
-        );
+        try {
+            enemy.healthBarFill.clear();
+            let barColor = 0x00ff00;
+            if (hpPercent < 0.3) barColor = 0xff0000;
+            else if (hpPercent < 0.6) barColor = 0xff8800;
+            
+            enemy.healthBarFill.fillStyle(barColor);
+            enemy.healthBarFill.fillRect(
+                enemy.x - healthBarWidth / 2,
+                enemy.y + healthBarY,
+                healthBarWidth * hpPercent,
+                healthBarHeight
+            );
+        } catch (e) {
+            // Graphics object was destroyed
+            return;
+        }
     }
     
     updateEnemies(player) {
@@ -277,10 +288,27 @@ export default class EnemyManager {
     }
     
     destroyEnemy(enemy) {
-        if (enemy.shadow) enemy.shadow.destroy();
-        if (enemy.healthBarBg) enemy.healthBarBg.destroy();
-        if (enemy.healthBarFill) enemy.healthBarFill.destroy();
-        enemy.destroy();
+        if (!enemy) return;
+        
+        // Destroy attached graphics
+        if (enemy.shadow && enemy.shadow.active) {
+            enemy.shadow.destroy();
+        }
+        if (enemy.healthBarBg && !enemy.healthBarBg.scene) {
+            // Already destroyed, skip
+        } else if (enemy.healthBarBg) {
+            enemy.healthBarBg.destroy();
+        }
+        if (enemy.healthBarFill && !enemy.healthBarFill.scene) {
+            // Already destroyed, skip
+        } else if (enemy.healthBarFill) {
+            enemy.healthBarFill.destroy();
+        }
+        
+        // Destroy the enemy sprite
+        if (enemy.active) {
+            enemy.destroy();
+        }
     }
     
     getEnemies() {
@@ -300,8 +328,22 @@ export default class EnemyManager {
     }
     
     clearAllEnemies() {
-        this.enemies.children.entries.forEach(enemy => {
-            this.destroyEnemy(enemy);
+        // Create a copy of the array to avoid iteration issues during destruction
+        const enemyList = [...this.enemies.children.entries];
+        enemyList.forEach(enemy => {
+            if (enemy && enemy.active) {
+                this.destroyEnemy(enemy);
+            }
         });
+    }
+    
+    reset() {
+        // Clear all enemies
+        this.clearAllEnemies();
+        
+        // Reset spawn rate and difficulty
+        this.spawnRate = GameConfig.ENEMY.SPAWN_RATE;
+        this.lastSpawnTime = 0;
+        this.enemySpeed = GameConfig.ENEMY.SPEED;
     }
 }
