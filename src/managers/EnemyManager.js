@@ -221,24 +221,35 @@ export default class EnemyManager {
         if (!player) return;
         
         const playerPos = player.getPosition();
+        const currentTime = this.scene.time.now;
         
         this.enemies.children.entries.forEach(enemy => {
-            if (!enemy.active) return;
+            if (!enemy.active || !enemy.enemyType) return;
             
             // Store previous position for collision detection
             enemy.prevX = enemy.x;
             enemy.prevY = enemy.y;
             
-            // Move toward player
-            const angle = Phaser.Math.Angle.Between(
-                enemy.x, enemy.y,
-                playerPos.x, playerPos.y
-            );
+            // Handle movement based on behavior pattern
+            const behavior = enemy.enemyType.behavior;
             
-            enemy.setVelocity(
-                Math.cos(angle) * enemy.speed,
-                Math.sin(angle) * enemy.speed
-            );
+            switch(behavior.movementPattern) {
+                case 'direct_chase':
+                    this.moveEnemyDirectChase(enemy, playerPos);
+                    break;
+                    
+                case 'sinusoidal_chase':
+                    this.moveEnemySinusoidalChase(enemy, playerPos, behavior);
+                    break;
+                    
+                case 'random_wander':
+                    this.moveEnemyRandomWander(enemy, behavior, currentTime);
+                    break;
+                    
+                default:
+                    // Fallback to direct chase
+                    this.moveEnemyDirectChase(enemy, playerPos);
+            }
             
             // Update shadow position
             if (enemy.shadow) {
@@ -255,6 +266,77 @@ export default class EnemyManager {
                 this.destroyEnemy(enemy);
             }
         });
+    }
+    
+    moveEnemyDirectChase(enemy, playerPos) {
+        // Standard direct movement toward player (RED enemies)
+        const angle = Phaser.Math.Angle.Between(
+            enemy.x, enemy.y,
+            playerPos.x, playerPos.y
+        );
+        
+        enemy.setVelocity(
+            Math.cos(angle) * enemy.speed,
+            Math.sin(angle) * enemy.speed
+        );
+    }
+    
+    moveEnemySinusoidalChase(enemy, playerPos, behavior) {
+        // Move toward player with sinusoidal wave pattern (GREEN enemies)
+        const angleToPlayer = Phaser.Math.Angle.Between(
+            enemy.x, enemy.y,
+            playerPos.x, playerPos.y
+        );
+        
+        // Initialize sin time if not exists
+        if (enemy.sinTime === undefined) {
+            enemy.sinTime = 0;
+            enemy.sinOffset = Math.random() * Math.PI * 2; // Random phase
+        }
+        
+        // Update sin time
+        enemy.sinTime += 0.1;
+        
+        // Calculate perpendicular angle (for side-to-side motion)
+        const perpAngle = angleToPlayer + Math.PI / 2;
+        
+        // Add sinusoidal offset
+        const amplitude = behavior.amplitude || 50;
+        const frequency = behavior.frequency || 1;
+        const sinOffset = Math.sin(enemy.sinTime * frequency + enemy.sinOffset) * amplitude;
+        
+        // Calculate velocity with wave
+        const baseVx = Math.cos(angleToPlayer) * enemy.speed;
+        const baseVy = Math.sin(angleToPlayer) * enemy.speed;
+        
+        const offsetVx = Math.cos(perpAngle) * sinOffset;
+        const offsetVy = Math.sin(perpAngle) * sinOffset;
+        
+        enemy.setVelocity(baseVx + offsetVx, baseVy + offsetVy);
+    }
+    
+    moveEnemyRandomWander(enemy, behavior, currentTime) {
+        // Random wandering movement (BLUE enemies)
+        
+        // Initialize properties if not exists
+        if (enemy.wanderAngle === undefined) {
+            enemy.wanderAngle = Math.random() * Math.PI * 2;
+            enemy.lastDirectionChange = currentTime;
+        }
+        
+        // Change direction periodically
+        const changeInterval = behavior.directionChangeInterval || 2000;
+        if (currentTime - enemy.lastDirectionChange > changeInterval) {
+            // Pick new random direction
+            enemy.wanderAngle = Math.random() * Math.PI * 2;
+            enemy.lastDirectionChange = currentTime;
+        }
+        
+        // Move in current wander direction
+        enemy.setVelocity(
+            Math.cos(enemy.wanderAngle) * enemy.speed,
+            Math.sin(enemy.wanderAngle) * enemy.speed
+        );
     }
     
     selectRandomEnemyType() {

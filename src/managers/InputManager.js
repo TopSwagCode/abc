@@ -229,6 +229,24 @@ export default class InputManager {
         if (!this.gamepad) return false;
         
         const buttonIndex = GameConfig.INPUT.GAMEPAD.BUTTONS[buttonName];
-        return this.gamepad.buttons[buttonIndex]?.justDown || false;
+        if (buttonIndex === undefined) {
+            console.warn(`Button ${buttonName} not found in config`);
+            return false;
+        }
+        
+        const button = this.gamepad.buttons[buttonIndex];
+        if (!button) {
+            console.warn(`Button at index ${buttonIndex} not found on gamepad`);
+            return false;
+        }
+        
+        // Phaser gamepad buttons have a 'justDown' property
+        const justPressed = button.justDown || false;
+        
+        if (justPressed) {
+            console.log(`🎮 Button ${buttonName} (index ${buttonIndex}) just pressed`);
+        }
+        
+        return justPressed;
     }
 }

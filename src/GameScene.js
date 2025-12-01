@@ -356,6 +356,7 @@ export default class GameScene extends Phaser.Scene {
         // X Button - Toggle auto-fire
         if (this.inputManager.wasButtonJustPressed('X')) {
             this.itemManager.toggleAutoFire();
+            console.log('🔫 Auto-fire:', this.itemManager.isAutoFireEnabled() ? 'ON' : 'OFF');
         }
         
         // START Button - Toggle pause
