@@ -17,6 +17,7 @@ import UIManager from './managers/UIManager.js';
 import LevelingSystem from './systems/LevelingSystem.js';
 import MapSystem from './systems/MapSystem.js';
 import EffectsManager from './managers/EffectsManager.js';
+import LootManager from './managers/LootManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -28,6 +29,11 @@ export default class GameScene extends Phaser.Scene {
         this.enemyManager = null;
         this.itemManager = null;
         this.collisionManager = null;
+        this.uiManager = null;
+        this.levelingSystem = null;
+        this.mapSystem = null;
+        this.effectsManager = null;
+        this.lootManager = null;
         this.uiManager = null;
         this.levelingSystem = null;
         this.mapSystem = null;
@@ -67,6 +73,9 @@ export default class GameScene extends Phaser.Scene {
         this.load.image('enemy_sprite_basic_red', 'assets/enemy-red.png');
         this.load.image('enemy_sprite_dodger_green', 'assets/enemy-green.png');
         this.load.image('enemy_sprite_wanderer_blue', 'assets/enemy-blue.png');
+        
+        // Load loot sprites
+        this.load.image('chest', 'assets/chest.png');
         
         // Load configuration files
         this.load.json('enemyConfig', 'enemies.json');
@@ -130,8 +139,11 @@ export default class GameScene extends Phaser.Scene {
         // Effects Manager (handles DoT, buffs, debuffs)
         this.effectsManager = new EffectsManager(this);
         
-        // Collision Manager (pass effectsManager for poison)
-        this.collisionManager = new CollisionManager(this, this.effectsManager);
+        // Loot Manager (handles loot drops and pickups)
+        this.lootManager = new LootManager(this);
+        
+        // Collision Manager (pass effectsManager for poison and enemyManager for cleanup)
+        this.collisionManager = new CollisionManager(this, this.effectsManager, this.enemyManager);
         
         // Leveling System
         this.levelingSystem = new LevelingSystem(this);
@@ -172,6 +184,18 @@ export default class GameScene extends Phaser.Scene {
         // Enemy killed - award XP
         this.events.on('enemyKilled', (data) => {
             this.levelingSystem.gainXP(GameConfig.LEVELING.XP_PER_KILL);
+            
+            // Try to drop loot
+            if (data && data.position) {
+                this.lootManager.tryDropLoot(data.position);
+            }
+        });
+        
+        // Chest collected - award bonus XP
+        this.events.on('chestCollected', (data) => {
+            if (data && data.bonusXP) {
+                this.levelingSystem.gainXP(data.bonusXP);
+            }
         });
         
         // Player damaged
@@ -343,6 +367,9 @@ export default class GameScene extends Phaser.Scene {
         
         // Update effects (poison, buffs, debuffs, etc.)
         this.effectsManager.update(time, this.enemyManager.getEnemies(), this.player);
+        
+        // Update loot (animations, magnetic attraction, pickup)
+        this.lootManager.update(delta, this.player);
         
         // Check collisions BEFORE updating positions
         this.collisionManager.checkBallEnemyCollisions(this.balls, this.enemyManager.getEnemies());
@@ -574,6 +601,7 @@ export default class GameScene extends Phaser.Scene {
         this.enemyManager.reset();
         this.itemManager.reset();
         this.levelingSystem.reset();
+        this.lootManager.reset();
         
         // Clear physics groups (enemies already cleared above, just clear balls)
         this.balls.clear(true, true);

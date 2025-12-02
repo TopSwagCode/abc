@@ -13,15 +13,26 @@ export const GameConfig = {
     MAP_HEIGHT: 1024,
     DEFAULT_MAP: 'grass',
     
+    // Shadow settings (global for all entities)
+    SHADOW: {
+        ALPHA: 0.5,         // Darkness of all shadows
+        OFFSET_Y: 3,        // Vertical offset below entity
+        SIZE_MULTIPLIER: 1.0 // Shadow is 20% bigger than entity
+    },
+    
+    // Collision settings (adjust hitboxes relative to sprite size)
+    COLLISION: {
+        PLAYER_MULTIPLIER: 0.6,   // Player collision is 60% of sprite size
+        ENEMY_MULTIPLIER: 0.7,    // Enemy collision is 70% of sprite size
+        LOOT_MULTIPLIER: 0.7      // Loot collision is 70% of sprite size
+    },
+    
     // Player defaults
     PLAYER: {
         MAX_HP: 100,
         STARTING_HP: 100,
         MOVE_SPEED: 200,
-        SIZE: 40,
-        SHADOW_SIZE: 20,
-        SHADOW_OFFSET_Y: 3,
-        SHADOW_ALPHA: 0.3
+        SIZE: 40
     },
     
     // Shooting defaults

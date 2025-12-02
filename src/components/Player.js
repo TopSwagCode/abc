@@ -15,6 +15,7 @@ export default class Player {
         this.maxHP = GameConfig.PLAYER.MAX_HP;
         this.hp = GameConfig.PLAYER.STARTING_HP;
         this.moveSpeed = GameConfig.PLAYER.MOVE_SPEED;
+        this.magneticRange = 100; // Base magnetic range for loot pickup
         
         // Create sprite
         this.sprite = this.createSprite(x, y);
@@ -26,14 +27,15 @@ export default class Player {
         
         console.log('✅ Player sprite created successfully');
         
-        // Create shadow
+        // Create shadow (radius should be half of player size)
+        const shadowRadius = (GameConfig.PLAYER.SIZE / 2) * GameConfig.SHADOW.SIZE_MULTIPLIER;
         this.shadow = this.scene.add.circle(
             x,
-            y + GameConfig.PLAYER.SHADOW_OFFSET_Y,
-            GameConfig.PLAYER.SHADOW_SIZE,
-            0x000000,
-            GameConfig.PLAYER.SHADOW_ALPHA
+            y + GameConfig.SHADOW.OFFSET_Y,
+            shadowRadius,
+            0x000000
         );
+        this.shadow.setAlpha(GameConfig.SHADOW.ALPHA);
         this.shadow.setDepth(GameConfig.DEPTH.SHADOW);
         
         // Create crosshair
@@ -67,13 +69,16 @@ export default class Player {
             const spriteTexture = this.scene.textures.get('player_sprite');
             const frame = spriteTexture.get();
             
-            // Calculate scale to make sprite 30 pixels
+            // Calculate scale to make sprite 40 pixels
             const targetSize = GameConfig.PLAYER.SIZE;
             const scale = targetSize / Math.max(frame.width, frame.height);
             
             sprite = this.scene.physics.add.sprite(x, y, 'player_sprite');
             sprite.setScale(scale);
-            sprite.setCircle(targetSize / 2);
+            
+            // Set collision circle smaller than sprite (to account for sprite whitespace)
+            const collisionRadius = (targetSize / 2) * GameConfig.COLLISION.PLAYER_MULTIPLIER;
+            sprite.setCircle(collisionRadius);
         } else {
             console.log('  Generating fallback player texture');
             // Generate simple circle texture if it doesn't exist
@@ -126,7 +131,7 @@ export default class Player {
         
         // Update shadow position
         this.shadow.x = this.sprite.x;
-        this.shadow.y = this.sprite.y + GameConfig.PLAYER.SHADOW_OFFSET_Y;
+        this.shadow.y = this.sprite.y + GameConfig.SHADOW.OFFSET_Y;
         
         // Update crosshair position
         const distance = GameConfig.CROSSHAIR.DISTANCE;
@@ -256,6 +261,18 @@ export default class Player {
     
     getMaxHP() {
         return this.maxHP;
+    }
+    
+    getMagneticRange() {
+        return this.magneticRange;
+    }
+    
+    setMagneticRange(range) {
+        this.magneticRange = range;
+    }
+    
+    increaseMagneticRange(amount) {
+        this.magneticRange += amount;
     }
     
     getMoveSpeed() {

@@ -125,12 +125,16 @@ export default class EnemyManager {
             const scale = targetDiameter / Math.max(enemy.width, enemy.height);
             enemy.setScale(scale);
             
-            const bodySize = targetDiameter;
+            // Set collision circle smaller than sprite (to account for sprite whitespace)
+            const collisionRadius = enemyType.size * GameConfig.COLLISION.ENEMY_MULTIPLIER;
+            const bodySize = collisionRadius * 2;
             const offsetX = (enemy.displayWidth - bodySize) / 2;
             const offsetY = (enemy.displayHeight - bodySize) / 2;
-            enemy.body.setCircle(enemyType.size, offsetX, offsetY);
+            enemy.body.setCircle(collisionRadius, offsetX, offsetY);
         } else {
-            enemy.setCircle(enemyType.size);
+            // Fallback colored circles also use smaller collision
+            const collisionRadius = enemyType.size * GameConfig.COLLISION.ENEMY_MULTIPLIER;
+            enemy.setCircle(collisionRadius);
         }
         
         // Set enemy properties
@@ -157,7 +161,13 @@ export default class EnemyManager {
         enemy.prevY = y;
         
         // Add shadow
-        enemy.shadow = this.scene.add.circle(x, y + 3, enemyType.size, 0x000000, 0.25);
+        enemy.shadow = this.scene.add.circle(
+            x, 
+            y + GameConfig.SHADOW.OFFSET_Y, 
+            enemyType.size * GameConfig.SHADOW.SIZE_MULTIPLIER, 
+            0x000000
+        );
+        enemy.shadow.setAlpha(GameConfig.SHADOW.ALPHA);
         enemy.shadow.setDepth(GameConfig.DEPTH.ENEMY_SHADOW);
         
         // Visual settings
@@ -274,7 +284,7 @@ export default class EnemyManager {
                 enemy.shadow.x = enemy.x;
                 // Shadow moves slightly when bobbing up (simulates height)
                 const bobOffset = Math.sin(enemy.animationTime) * enemy.bobAmount * 0.5;
-                enemy.shadow.y = enemy.y + 3 + Math.abs(bobOffset);
+                enemy.shadow.y = enemy.y + GameConfig.SHADOW.OFFSET_Y + Math.abs(bobOffset);
                 // Shadow gets slightly smaller when enemy "jumps" higher
                 const shadowScale = 1 - Math.abs(bobOffset) * 0.02;
                 enemy.shadow.setScale(shadowScale);
@@ -460,15 +470,9 @@ export default class EnemyManager {
     destroyEnemy(enemy) {
         if (!enemy) return;
         
-        // Clear poison effects if EffectsManager exists
-        if (this.scene.effectsManager && enemy.poisonStacks > 0) {
+        // Clear any active effects (poison, etc.) - ALWAYS call to ensure cleanup
+        if (this.scene.effectsManager) {
             this.scene.effectsManager.clearPoison(enemy);
-        }
-        
-        // Destroy poison stack text if it exists
-        if (enemy.poisonStackText) {
-            enemy.poisonStackText.destroy();
-            enemy.poisonStackText = null;
         }
         
         // Destroy attached graphics
@@ -484,6 +488,12 @@ export default class EnemyManager {
             // Already destroyed, skip
         } else if (enemy.healthBarFill) {
             enemy.healthBarFill.destroy();
+        }
+        
+        // Failsafe: Destroy poison stack indicator if it still exists
+        if (enemy.poisonStackText) {
+            enemy.poisonStackText.destroy();
+            enemy.poisonStackText = null;
         }
         
         // Destroy the enemy sprite

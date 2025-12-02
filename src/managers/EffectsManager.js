@@ -135,16 +135,23 @@ export default class EffectsManager {
      * Clear poison from an enemy
      */
     clearPoison(enemy) {
-        if (!enemy.active) return;
+        if (!enemy) return;
+        
+        // Debug log
+        if (enemy.poisonStackText) {
+            console.log('Clearing poison stack text for enemy');
+        }
         
         enemy.poisonStacks = 0;
         enemy.poisonLastTickTime = null;
         enemy.poisonExpiryTime = null;
         
-        // Clear tint
-        enemy.clearTint();
+        // Clear tint (only if enemy is still active)
+        if (enemy.active) {
+            enemy.clearTint();
+        }
         
-        // Remove stack indicator if it exists
+        // Remove stack indicator if it exists (always do this, even if enemy is inactive)
         if (enemy.poisonStackText) {
             enemy.poisonStackText.destroy();
             enemy.poisonStackText = null;

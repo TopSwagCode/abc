@@ -6,9 +6,10 @@
 import GameConfig from '../config/GameConfig.js';
 
 export class CollisionManager {
-    constructor(scene, effectsManager) {
+    constructor(scene, effectsManager, enemyManager) {
         this.scene = scene;
         this.effectsManager = effectsManager;
+        this.enemyManager = enemyManager;
         
         // Track recent ball-enemy collisions to prevent multiple hits
         // Format: Map<ballId, Map<enemyId, timestamp>>
@@ -291,15 +292,11 @@ export class CollisionManager {
         
         // Kill enemy if HP <= 0
         if (enemy.hp <= 0) {
-            // Destroy health bars and shadow
-            if (enemy.healthBarBg) enemy.healthBarBg.destroy();
-            if (enemy.healthBarFill) enemy.healthBarFill.destroy();
-            if (enemy.shadow) enemy.shadow.destroy();
-            
-            enemy.destroy();
+            // Use EnemyManager's destroyEnemy for proper cleanup
+            this.enemyManager.destroyEnemy(enemy);
             
             // Award XP
-            this.scene.events.emit('enemyKilled', enemy);
+            this.scene.events.emit('enemyKilled', { position: { x: enemy.x, y: enemy.y } });
         }
         
         // Handle ball bounce
@@ -352,11 +349,8 @@ export class CollisionManager {
             player.sprite.body.velocity.y + Math.sin(angle) * 200
         );
         
-        // Destroy enemy and its components (like in original game)
-        if (enemy.healthBarBg) enemy.healthBarBg.destroy();
-        if (enemy.healthBarFill) enemy.healthBarFill.destroy();
-        if (enemy.shadow) enemy.shadow.destroy();
-        enemy.destroy();
+        // Use EnemyManager's destroyEnemy for proper cleanup (includes poison icons)
+        this.enemyManager.destroyEnemy(enemy);
         
         // Emit events
         if (isDead) {
