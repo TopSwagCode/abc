@@ -450,8 +450,14 @@ export default class EnemyManager {
     animateEnemy(enemy) {
         if (!enemy || !enemy.active) return;
         
+        // Reduce animation speed for scared ghosts
+        let animationSpeedMultiplier = 1.0;
+        if (enemy.enemyType.id === 'ghost' && enemy.isScared) {
+            animationSpeedMultiplier = 0.5; // Half speed when scared
+        }
+        
         // Update animation time based on bob speed
-        enemy.animationTime += 0.016 * enemy.bobSpeed; // ~60fps delta
+        enemy.animationTime += 0.016 * enemy.bobSpeed * animationSpeedMultiplier; // ~60fps delta
         
         // Calculate bob offset (vertical bounce)
         const bobOffset = Math.sin(enemy.animationTime) * enemy.bobAmount;
