@@ -83,6 +83,22 @@
       "behavior": {
         "movementPattern": "direct_chase"
       }
+    },
+    {
+      "id": "ghost",
+      "name": "Phantom Ghost",
+      "type": "chaser",
+      "color": "0x9999ff",
+      "size": 18,
+      "hp": 55,
+      "damage": 12,
+      "baseSpeed": 75,
+      "spawnWeight": 7,
+      "description": "Fast ethereal enemy that phases toward the player",
+      "sprite": "assets/enemy-ghost.png",
+      "behavior": {
+        "movementPattern": "direct_chase"
+      }
     }
   ]
 }

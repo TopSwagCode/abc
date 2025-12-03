@@ -256,25 +256,33 @@ export default class EnemyManager {
             enemy.prevX = enemy.x;
             enemy.prevY = enemy.y;
             
-            // Handle movement based on behavior pattern
-            const behavior = enemy.enemyType.behavior;
+            // Special logic: Ghost (Boo-like behavior)
+            if (enemy.enemyType.id === 'ghost') {
+                this.updateGhostBehavior(enemy, player);
+            }
             
-            switch(behavior.movementPattern) {
-                case 'direct_chase':
-                    this.moveEnemyDirectChase(enemy, playerPos);
-                    break;
-                    
-                case 'sinusoidal_chase':
-                    this.moveEnemySinusoidalChase(enemy, playerPos, behavior);
-                    break;
-                    
-                case 'random_wander':
-                    this.moveEnemyRandomWander(enemy, behavior, currentTime);
-                    break;
-                    
-                default:
-                    // Fallback to direct chase
-                    this.moveEnemyDirectChase(enemy, playerPos);
+            // Handle movement based on behavior pattern
+            // Skip movement if ghost is scared (frozen in place)
+            if (!(enemy.enemyType.id === 'ghost' && enemy.isScared)) {
+                const behavior = enemy.enemyType.behavior;
+                
+                switch(behavior.movementPattern) {
+                    case 'direct_chase':
+                        this.moveEnemyDirectChase(enemy, playerPos);
+                        break;
+                        
+                    case 'sinusoidal_chase':
+                        this.moveEnemySinusoidalChase(enemy, playerPos, behavior);
+                        break;
+                        
+                    case 'random_wander':
+                        this.moveEnemyRandomWander(enemy, behavior, currentTime);
+                        break;
+                        
+                    default:
+                        // Fallback to direct chase
+                        this.moveEnemyDirectChase(enemy, playerPos);
+                }
             }
             
             // Animate enemy sprite (bob and squash based on speed and size)
@@ -388,6 +396,54 @@ export default class EnemyManager {
         );
     }
     
+    /**
+     * Update ghost behavior - "Boo from Mario" logic
+     * Ghost stops and looks scared when player faces it
+     */
+    updateGhostBehavior(enemy, player) {
+        if (!enemy || !enemy.active || !player) return;
+
+        // Get player's current aim angle (works for both mouse and controller)
+        const playerFacingAngle = player.getRotation();
+        
+        // Get player position
+        const playerPos = player.getPosition();
+
+        // Calculate angle from player to ghost
+        const angleToGhost = Math.atan2(
+            enemy.y - playerPos.y,
+            enemy.x - playerPos.x
+        );
+
+        // Calculate angle difference
+        let angleDiff = angleToGhost - playerFacingAngle;
+        // Normalize to -PI to PI
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+        // View cone: Player is facing ghost if angle difference is within ±60 degrees
+        const viewConeAngle = Math.PI / 3; // 60 degrees in radians
+        const isPlayerFacingGhost = Math.abs(angleDiff) < viewConeAngle;
+
+        // Update ghost state
+        if (isPlayerFacingGhost) {
+            // Player is looking at ghost - SCARED!
+            if (!enemy.isScared) {
+                enemy.isScared = true;
+                enemy.setTexture('enemy_sprite_ghost_scared');
+            }
+            // Stop movement but keep bob animation
+            enemy.setVelocity(0, 0);
+        } else {
+            // Player is not looking - CHASE!
+            if (enemy.isScared) {
+                enemy.isScared = false;
+                enemy.setTexture('enemy_sprite_ghost');
+            }
+            // Resume normal chase movement (handled by moveEnemyDirectChase)
+        }
+    }
+
     /**
      * Animate enemy with bob and squash effects based on speed and size
      */
