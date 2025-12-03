@@ -181,9 +181,11 @@ export default class EnemyManager {
     }
     
     createEnemyHealthBar(enemy, enemyType) {
-        const healthBarWidth = enemyType.size * 2;
+        // Use custom size if available (for split slimes), otherwise use enemyType size
+        const size = enemy.customSize || enemyType.size;
+        const healthBarWidth = size * 2;
         const healthBarHeight = 3;
-        const healthBarY = -enemyType.size - 8;
+        const healthBarY = -size - 8;
         
         enemy.healthBarBg = this.scene.add.graphics();
         enemy.healthBarBg.setDepth(50);
@@ -198,9 +200,11 @@ export default class EnemyManager {
         if (!enemy || !enemy.active) return;
         if (!enemy.healthBarBg || !enemy.healthBarFill) return;
         
-        const healthBarWidth = enemy.enemyType.size * 2;
+        // Use custom size if available (for split slimes), otherwise use enemyType size
+        const size = enemy.customSize || enemy.enemyType.size;
+        const healthBarWidth = size * 2;
         const healthBarHeight = 3;
-        const healthBarY = -enemy.enemyType.size - 8;
+        const healthBarY = -size - 8;
         
         const hpPercent = enemy.hp / enemy.maxHP;
         
@@ -470,6 +474,16 @@ export default class EnemyManager {
     destroyEnemy(enemy) {
         if (!enemy) return;
         
+        // Store position and type before destruction
+        const enemyX = enemy.x;
+        const enemyY = enemy.y;
+        const enemyType = enemy.enemyType;
+        
+        // Special death logic: Slime splitting
+        if (enemyType && enemyType.id === 'slime') {
+            this.handleSlimeSplit(enemy, enemyX, enemyY, enemyType);
+        }
+        
         // Play death animation BEFORE destroying the enemy
         if (this.scene.deathAnimationManager && enemy.enemyType) {
             this.scene.deathAnimationManager.playDeathAnimation(enemy, enemy.enemyType);
@@ -505,6 +519,142 @@ export default class EnemyManager {
         if (enemy.active) {
             enemy.destroy();
         }
+    }
+    
+    /**
+     * Handle slime splitting on death
+     * Slimes split into 2 smaller slimes until they would have less than 10 HP
+     */
+    handleSlimeSplit(enemy, x, y, enemyType) {
+        // Get current slime's HP and size (might be a split slime with custom values)
+        const currentHP = enemy.maxHP || enemyType.hp; // Use maxHP if it's a split slime
+        const currentSize = enemy.customSize || enemyType.size;
+        
+        // Calculate new slime stats (half HP and size)
+        const newHP = Math.floor(currentHP / 2);
+        const newSize = Math.floor(currentSize / 1.25);
+        
+        // Only split if new HP would be >= 10
+        if (newHP < 10) {
+            console.log(`Slime too small to split (would have ${newHP} HP)`);
+            return; // Don't spawn smaller slimes
+        }
+        
+        console.log(`Slime splitting: ${currentHP}HP → 2x ${newHP}HP slimes`);
+        
+        // Spawn 2 smaller slimes at slight offsets
+        const spawnOffsets = [
+            { x: -15, y: -10 },  // Top-left
+            { x: 15, y: -10 }    // Top-right
+        ];
+        
+        spawnOffsets.forEach(offset => {
+            this.spawnSplitSlime(
+                x + offset.x,
+                y + offset.y,
+                enemyType,
+                newHP,
+                newSize
+            );
+        });
+    }
+    
+    /**
+     * Spawn a split slime with custom HP and size
+     */
+    spawnSplitSlime(x, y, enemyType, hp, size) {
+        // Create enemy sprite directly
+        const textureKey = enemyType.sprite ? `enemy_sprite_${enemyType.id}` : `enemy_${enemyType.id}`;
+        const enemy = this.enemies.create(x, y, textureKey);
+        
+        if (!enemy) return;
+        
+        // Calculate the scale needed for the custom size
+        const targetDiameter = size * 2;
+        const scale = targetDiameter / Math.max(enemy.width, enemy.height);
+        
+        // Set enemy properties with custom HP and size FIRST
+        enemy.maxHP = hp;
+        enemy.hp = hp;
+        enemy.customSize = size; // Store for future splits
+        enemy.damage = enemyType.damage;
+        enemy.speed = enemyType.baseSpeed + (this.enemySpeed - GameConfig.ENEMY.SPEED);
+        enemy.enemyType = enemyType;
+        
+        // Animation properties
+        enemy.animationTime = Math.random() * Math.PI * 2;
+        enemy.baseScale = scale;
+        const speedFactor = enemy.speed / 100;
+        const sizeFactor = 1 / (size / 16);
+        enemy.bobSpeed = speedFactor * sizeFactor * 20;
+        enemy.bobAmount = (speedFactor * 2.5) / sizeFactor;
+        
+        // Track previous position
+        enemy.prevX = x;
+        enemy.prevY = y;
+        
+        // Set the scale BEFORE setting collision
+        enemy.setScale(scale);
+        
+        // Now set collision circle for the new size
+        // The collision should be based on the actual size, not the sprite size
+        const collisionRadius = size * GameConfig.COLLISION.ENEMY_MULTIPLIER;
+        
+        if (enemyType.sprite) {
+            // For sprites, we need to calculate offset based on display size
+            const bodyDiameter = collisionRadius * 2;
+            const offsetX = (enemy.displayWidth - bodyDiameter) / 2;
+            const offsetY = (enemy.displayHeight - bodyDiameter) / 2;
+            enemy.body.setCircle(collisionRadius, offsetX, offsetY);
+        } else {
+            // For generated textures
+            enemy.setCircle(collisionRadius);
+        }
+        
+        // Add shadow with correct size (use radius, not diameter)
+        const shadowRadius = (size / 2) * GameConfig.SHADOW.SIZE_MULTIPLIER;
+        enemy.shadow = this.scene.add.circle(
+            x, 
+            y + GameConfig.SHADOW.OFFSET_Y, 
+            shadowRadius, 
+            0x000000
+        );
+        enemy.shadow.setAlpha(GameConfig.SHADOW.ALPHA);
+        enemy.shadow.setDepth(GameConfig.DEPTH.ENEMY_SHADOW);
+        
+        // Visual settings
+        enemy.setTint(0xffffff);
+        enemy.setDepth(GameConfig.DEPTH.PLAYER);
+        
+        // Create health bar (will use customSize)
+        this.createEnemyHealthBar(enemy, enemyType);
+        
+        // Add a little bounce effect when spawned (scale from small to normal)
+        const targetScale = scale;
+        enemy.setAlpha(0.5);
+        enemy.setScale(scale * 0.3); // Start very small
+        
+        this.scene.tweens.add({
+            targets: enemy,
+            alpha: 1,
+            scale: targetScale,
+            duration: 250,
+            ease: 'Back.easeOut',
+            onUpdate: () => {
+                // Update collision during scale animation to keep it accurate
+                if (enemy.active && enemy.body) {
+                    const currentRadius = size * GameConfig.COLLISION.ENEMY_MULTIPLIER;
+                    if (enemyType.sprite) {
+                        const bodyDiameter = currentRadius * 2;
+                        const offsetX = (enemy.displayWidth - bodyDiameter) / 2;
+                        const offsetY = (enemy.displayHeight - bodyDiameter) / 2;
+                        enemy.body.setCircle(currentRadius, offsetX, offsetY);
+                    }
+                }
+            }
+        });
+        
+        console.log(`✅ Spawned split slime: ${hp}HP, ${size}px size (scale: ${scale.toFixed(2)}, collision radius: ${collisionRadius.toFixed(1)})`);
     }
     
     getEnemies() {

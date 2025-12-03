@@ -19,7 +19,8 @@ export default class DeathAnimationManager {
         const x = enemy.x;
         const y = enemy.y;
         const color = enemyType.color ? parseInt(enemyType.color) : 0xff0000;
-        const size = enemyType.size || 20;
+        // Use custom size if available (for split slimes), otherwise use enemyType size
+        const size = enemy.customSize || enemyType.size || 20;
 
         // 1. White damage flash (single frame)
         this.createDamageFlash(x, y, color, size);
@@ -27,7 +28,7 @@ export default class DeathAnimationManager {
         // 2. Quick squash-and-pop on the enemy before it disappears
         this.createPopEffect(enemy);
 
-        // 3. Add a few larger "blood drops"
+        // 3. Particle explosion
         this.createBloodDrops(x, y, color, size);
     }
 
@@ -93,7 +94,9 @@ export default class DeathAnimationManager {
             const startOffsetX = Math.cos(angle) * (size * 0.2);
             const startOffsetY = Math.sin(angle) * (size * 0.2);
             
-            const dropSize = 5 + Math.random() * 5; // Bigger drops
+            // Scale drop size based on enemy size (bigger enemies = bigger drops)
+            const baseDropSize = size * 0.15; // 15% of enemy size
+            const dropSize = baseDropSize + Math.random() * baseDropSize;
 
             const drop = this.scene.add.circle(
                 x + startOffsetX,
@@ -104,12 +107,12 @@ export default class DeathAnimationManager {
             drop.setAlpha(0.9);
             drop.setDepth(GameConfig.DEPTH.PROJECTILE - 2);
 
-            // Calculate outward spread destination
+            // Calculate outward spread destination (scaled by size)
             const spreadX = Math.cos(angle) * spreadDistance;
             const spreadY = Math.sin(angle) * spreadDistance;
             
-            // Also fall down with gravity
-            const fallDistance = 30 + Math.random() * 50;
+            // Also fall down with gravity (scaled by size)
+            const fallDistance = size * 0.8 + Math.random() * size * 1.2;
 
             // Animate drop spreading outward AND falling
             this.scene.tweens.add({
