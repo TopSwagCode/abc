@@ -6,10 +6,11 @@
 import GameConfig from '../config/GameConfig.js';
 
 export default class Player {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, spriteKey = 'player_default') {
         this.scene = scene;
+        this.spriteKey = spriteKey; // Store the sprite key to use
         
-        console.log('🎮 Creating player at', x, y);
+        console.log('🎮 Creating player at', x, y, 'with sprite:', spriteKey);
         
         // Stats
         this.maxHP = GameConfig.PLAYER.MAX_HP;
@@ -51,7 +52,7 @@ export default class Player {
         
         // Animation properties for bobbing and squashing
         this.animationTime = 0;
-        this.baseScale = this.scene.textures.exists('player_sprite') ? 
+        this.baseScale = this.scene.textures.exists(this.spriteKey) ? 
             (GameConfig.PLAYER.SIZE / Math.max(this.sprite.width, this.sprite.height)) : 1;
         this.currentAimAngle = 0; // Track aim direction for sprite flipping
         
@@ -64,20 +65,20 @@ export default class Player {
         let sprite;
         
         console.log('🔨 Creating sprite, checking textures...');
-        console.log('  player_sprite exists:', this.scene.textures.exists('player_sprite'));
-        console.log('  player exists:', this.scene.textures.exists('player'));
+        console.log('  Requested sprite:', this.spriteKey);
+        console.log('  Sprite exists:', this.scene.textures.exists(this.spriteKey));
         
-        // Try to use custom player sprite if available
-        if (this.scene.textures.exists('player_sprite')) {
-            console.log('  Using player_sprite texture');
-            const spriteTexture = this.scene.textures.get('player_sprite');
+        // Try to use the selected player sprite
+        if (this.scene.textures.exists(this.spriteKey)) {
+            console.log('  Using', this.spriteKey, 'texture');
+            const spriteTexture = this.scene.textures.get(this.spriteKey);
             const frame = spriteTexture.get();
             
             // Calculate scale to make sprite 40 pixels
             const targetSize = GameConfig.PLAYER.SIZE;
             const scale = targetSize / Math.max(frame.width, frame.height);
             
-            sprite = this.scene.physics.add.sprite(x, y, 'player_sprite');
+            sprite = this.scene.physics.add.sprite(x, y, this.spriteKey);
             sprite.setScale(scale);
             
             // Set collision circle smaller than sprite (to account for sprite whitespace)

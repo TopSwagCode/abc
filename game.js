@@ -6,6 +6,7 @@
  * All game logic has been extracted into modular components in src/
  */
 
+import CharacterSelectScene from './src/CharacterSelectScene.js';
 import GameScene from './src/GameScene.js';
 
 // Game configuration
@@ -25,10 +26,11 @@ const config = {
     input: {
         gamepad: true
     },
-    scene: [GameScene]
+    scene: [CharacterSelectScene, GameScene]
 };
 
 // Initialize game
 const game = new Phaser.Game(config);
 
 console.log('🎮 Game initialized with component-based architecture');
+

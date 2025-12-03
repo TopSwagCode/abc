@@ -66,8 +66,10 @@ export default class GameScene extends Phaser.Scene {
         this.mapSystem = new MapSystem(this);
         this.mapSystem.preloadMapAssets(this);
         
-        // Load player sprite
-        this.load.image('player_sprite', 'assets/player-default.png');
+        // Load player sprites (all options for character select)
+        this.load.image('player_default', 'assets/player-default.png');
+        this.load.image('player_random', 'assets/player-random.png');
+        this.load.image('player_locked', 'assets/player-locked.png');
         this.load.image('crosshair', 'assets/crosshair.png');
         
         // Load enemy sprites
@@ -120,11 +122,17 @@ export default class GameScene extends Phaser.Scene {
         
         // === INITIALIZE MANAGERS ===
         
+        // Get selected character from registry (set by CharacterSelectScene)
+        const selectedCharacter = this.registry.get('selectedCharacter') || 'player_default';
+        const selectedDifficulty = this.registry.get('selectedDifficulty') || 2;
+        
+        console.log(`🎮 Starting game with character: ${selectedCharacter}, difficulty: ${selectedDifficulty}`);
+        
         // Input Manager
         this.inputManager = new InputManager(this);
         
-        // Player Component
-        this.player = new Player(this, GameConfig.MAP_WIDTH / 2, GameConfig.MAP_HEIGHT / 2);
+        // Player Component (with selected character sprite)
+        this.player = new Player(this, GameConfig.MAP_WIDTH / 2, GameConfig.MAP_HEIGHT / 2, selectedCharacter);
         this.player.create();
         
         // Camera setup
