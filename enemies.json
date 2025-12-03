@@ -51,6 +51,38 @@
         "directionChangeInterval": 2000,
         "randomness": 0.8
       }
+    },
+    {
+      "id": "skeleton",
+      "name": "Skeleton Warrior",
+      "type": "chaser",
+      "color": "0xcccccc",
+      "size": 22,
+      "hp": 100,
+      "damage": 20,
+      "baseSpeed": 60,
+      "spawnWeight": 5,
+      "description": "Undead skeleton warrior - placeholder for future custom logic",
+      "sprite": "assets/enemy-skeleton.png",
+      "behavior": {
+        "movementPattern": "direct_chase"
+      }
+    },
+    {
+      "id": "slime",
+      "name": "Slime",
+      "type": "chaser",
+      "color": "0x00ff88",
+      "size": 35,
+      "hp": 200,
+      "damage": 50,
+      "baseSpeed": 45,
+      "spawnWeight": 12,
+      "description": "Weak gelatinous creature that spawns frequently",
+      "sprite": "assets/enemy-slime.png",
+      "behavior": {
+        "movementPattern": "direct_chase"
+      }
     }
   ]
 }
