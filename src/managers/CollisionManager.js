@@ -323,16 +323,24 @@ export class CollisionManager {
     handlePlayerEnemyHit(player, enemy) {
         if (!enemy.active) return;
         
+        // Check if player is invincible (i-frames)
+        if (player.isPlayerInvincible()) {
+            return; // Don't apply damage during i-frames
+        }
+        
         const damage = enemy.damage;
         const isDead = player.takeDamage(damage);
         
-        // Visual feedback
+        // Visual feedback - red tint flash
         player.sprite.setTint(0xff0000);
-        this.scene.time.delayedCall(500, () => {
+        this.scene.time.delayedCall(200, () => {
             if (player.sprite.active) {
                 player.sprite.clearTint();
             }
         });
+        
+        // Flashing effect during invincibility
+        this.createInvincibilityFlash(player);
         
         // Screen shake on hit
         this.scene.cameras.main.shake(100, 0.005);
@@ -347,13 +355,52 @@ export class CollisionManager {
             player.sprite.body.velocity.y + Math.sin(angle) * 200
         );
         
-        // Use EnemyManager's destroyEnemy for proper cleanup (includes poison icons)
-        this.enemyManager.destroyEnemy(enemy);
+        // NOTE: Enemy does NOT die from player contact!
+        // Enemies only die from projectile damage, not player collision.
+        // This makes combat more strategic - must use weapons to kill enemies.
         
         // Emit events
         if (isDead) {
             this.scene.events.emit('playerDied');
         }
+    }
+    
+    /**
+     * Create flashing effect during invincibility frames
+     */
+    createInvincibilityFlash(player) {
+        let flashCount = 0;
+        const maxFlashes = 10; // Flash 10 times during 1 second
+        const flashInterval = player.invincibilityDuration / (maxFlashes * 2);
+        
+        const flashTimer = this.scene.time.addEvent({
+            delay: flashInterval,
+            callback: () => {
+                if (!player.sprite.active) {
+                    flashTimer.remove();
+                    return;
+                }
+                
+                // Toggle alpha between visible and semi-transparent
+                if (flashCount % 2 === 0) {
+                    player.sprite.setAlpha(0.3);
+                    if (player.shadow) player.shadow.setAlpha(0.15);
+                } else {
+                    player.sprite.setAlpha(1.0);
+                    if (player.shadow) player.shadow.setAlpha(GameConfig.SHADOW.ALPHA);
+                }
+                
+                flashCount++;
+                
+                // Stop after max flashes
+                if (flashCount >= maxFlashes * 2) {
+                    player.sprite.setAlpha(1.0);
+                    if (player.shadow) player.shadow.setAlpha(GameConfig.SHADOW.ALPHA);
+                    flashTimer.remove();
+                }
+            },
+            loop: true
+        });
     }
 }
 

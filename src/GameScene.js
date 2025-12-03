@@ -587,37 +587,87 @@ export default class GameScene extends Phaser.Scene {
      */
     handleGameOver() {
         this.gameOver = true;
+        
+        console.log('💀 Game Over! Clearing game objects...');
+        
+        // Immediately clear all game objects when player dies
+        // This prevents visual artifacts on the game over screen
+        
+        // Clear all enemies and their graphics
+        this.enemyManager.clearAllEnemies();
+        
+        // Clear all loot
+        this.lootManager.reset();
+        
+        // Clear all projectiles
+        this.balls.clear(true, true);
+        
+        // Clear all tweens (stop animations immediately)
+        this.tweens.killAll();
+        
+        // Clear all timers (stop resurrections, poison ticks, etc.)
+        this.time.removeAllEvents();
+        
+        // Hide player and shadow
+        this.player.sprite.setVisible(false);
+        this.player.shadow.setVisible(false);
+        if (this.player.crosshair) {
+            this.player.crosshair.setVisible(false);
+        }
+        
+        // Show game over screen
         this.uiManager.setGameOverVisible(true);
-        console.log('💀 Game Over!');
+        
+        console.log('✅ Game objects cleared, showing game over screen');
     }
     
     /**
      * Reset game state
      */
     resetGameState() {
+        console.log('🔄 Resetting game state...');
+        
         this.gameOver = false;
         this.isPaused = false;
         this.gameTime = 0;
         
-        // Reset player
+        // FIRST: Clear all managers and objects (enemies, loot, projectiles)
+        // This must happen BEFORE clearing timers/tweens to prevent animations
+        // from trying to access destroyed objects
+        
+        // Reset managers (this will clear enemies properly with their graphics)
+        this.enemyManager.reset();
+        this.lootManager.reset();
+        
+        // Clear physics groups (enemies already cleared above, just clear balls)
+        this.balls.clear(true, true);
+        
+        // Clear effects (poison stacks, etc.)
+        if (this.effectsManager) {
+            this.effectsManager.reset();
+        }
+        
+        // SECOND: Now clear all pending timers and tweens
+        // (After objects are destroyed, so animations don't reference them)
+        this.time.removeAllEvents();
+        this.tweens.killAll();
+        
+        // THIRD: Reset player (after clearing enemies to prevent collision issues)
         this.player.reset();
         this.playerStats = {
             moveSpeed: GameConfig.PLAYER.MOVE_SPEED,
             maxHP: GameConfig.PLAYER.MAX_HP
         };
         
-        // Reset managers (this will clear enemies properly with their graphics)
-        this.enemyManager.reset();
+        // Reset other systems
         this.itemManager.reset();
         this.levelingSystem.reset();
-        this.lootManager.reset();
-        
-        // Clear physics groups (enemies already cleared above, just clear balls)
-        this.balls.clear(true, true);
         
         // Reset UI
         this.uiManager.setGameOverVisible(false);
         this.uiManager.hideLevelUpScreen();
         this.events.emit('itemsChanged', this.itemManager.getPlayerItems());
+        
+        console.log('✅ Game state reset complete');
     }
 }

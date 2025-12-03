@@ -17,6 +17,10 @@ export default class Player {
         this.moveSpeed = GameConfig.PLAYER.MOVE_SPEED;
         this.magneticRange = 100; // Base magnetic range for loot pickup
         
+        // Invincibility frames (i-frames)
+        this.isInvincible = false;
+        this.invincibilityDuration = 1000; // 1 second of i-frames after taking damage
+        
         // Create sprite
         this.sprite = this.createSprite(x, y);
         
@@ -288,7 +292,20 @@ export default class Player {
     }
     
     takeDamage(damage) {
+        // Don't take damage if invincible
+        if (this.isInvincible) {
+            return false;
+        }
+        
         this.hp -= damage;
+        
+        // Activate invincibility frames
+        this.isInvincible = true;
+        
+        // Deactivate after duration
+        this.scene.time.delayedCall(this.invincibilityDuration, () => {
+            this.isInvincible = false;
+        });
         
         if (this.hp <= 0) {
             this.hp = 0;
@@ -296,6 +313,10 @@ export default class Player {
         }
         
         return false; // Player is still alive
+    }
+    
+    isPlayerInvincible() {
+        return this.isInvincible;
     }
     
     heal(amount) {
@@ -314,9 +335,20 @@ export default class Player {
     }
     
     reset() {
+        // Reset health and invincibility
         this.hp = this.maxHP;
+        this.isInvincible = false;
+        
+        // Reset position and physics
         this.sprite.setPosition(GameConfig.MAP_WIDTH / 2, GameConfig.MAP_HEIGHT / 2);
         this.sprite.setVelocity(0, 0);
+        this.sprite.setActive(true);
+        this.sprite.setVisible(true);
+        
+        // Reset body physics if it exists
+        if (this.sprite.body) {
+            this.sprite.body.enable = true;
+        }
         
         // Reset animation properties
         this.animationTime = 0;
@@ -324,11 +356,26 @@ export default class Player {
         this.sprite.setScale(this.baseScale);
         this.sprite.setFlipX(false);
         this.sprite.displayOriginY = this.sprite.height / 2;
+        this.sprite.setAlpha(1.0); // Reset alpha in case invincibility flash was active
+        this.sprite.clearTint(); // Clear any damage tint
+        
+        // Reset shadow (make visible and reset properties)
+        this.shadow.setVisible(true);
         this.shadow.setScale(1);
+        this.shadow.setAlpha(GameConfig.SHADOW.ALPHA);
+        this.shadow.setPosition(
+            GameConfig.MAP_WIDTH / 2, 
+            GameConfig.MAP_HEIGHT / 2 + GameConfig.SHADOW.OFFSET_Y
+        );
+        
+        // Reset crosshair (visibility based on input mode, will be set by input manager)
+        if (this.crosshair) {
+            this.crosshair.setPosition(GameConfig.MAP_WIDTH / 2, GameConfig.MAP_HEIGHT / 2);
+        }
         
         // Reset previous position for collision detection
-        this.prevX = GameConfig.MAP_WIDTH / 2;
-        this.prevY = GameConfig.MAP_HEIGHT / 2;
+        this.sprite.prevX = GameConfig.MAP_WIDTH / 2;
+        this.sprite.prevY = GameConfig.MAP_HEIGHT / 2;
     }
     
     setCrosshairVisible(visible) {

@@ -886,11 +886,35 @@ export default class EnemyManager {
     clearAllEnemies() {
         // Create a copy of the array to avoid iteration issues during destruction
         const enemyList = [...this.enemies.children.entries];
+        console.log(`🧹 Clearing ${enemyList.length} enemies...`);
+        
         enemyList.forEach(enemy => {
-            if (enemy && enemy.active) {
-                this.destroyEnemy(enemy);
+            if (enemy) {
+                // Destroy shadow
+                if (enemy.shadow && enemy.shadow.active) {
+                    enemy.shadow.destroy();
+                }
+                // Destroy health bars
+                if (enemy.healthBarBg) {
+                    enemy.healthBarBg.destroy();
+                }
+                if (enemy.healthBarFill) {
+                    enemy.healthBarFill.destroy();
+                }
+                // Destroy poison stack indicator
+                if (enemy.poisonStackText) {
+                    enemy.poisonStackText.destroy();
+                }
+                // Destroy the enemy itself
+                if (enemy.active) {
+                    enemy.destroy();
+                }
             }
         });
+        
+        // Clear the physics group completely
+        this.enemies.clear(true, true);
+        console.log(`✅ All enemies cleared`);
     }
     
     reset() {

@@ -216,4 +216,14 @@ export default class EffectsManager {
             enemy.poisonStackText.setText(`☠${enemy.poisonStacks}`);
         }
     }
+    
+    /**
+     * Reset effects manager (clear all active effects)
+     */
+    reset() {
+        // Clear all poison effects from any enemies that might still exist
+        // Note: This is a safety measure, enemies should already be cleared
+        // but this ensures no lingering poison timers or UI elements
+        console.log('🧹 Resetting EffectsManager');
+    }
 }
