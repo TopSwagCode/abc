@@ -18,6 +18,7 @@ import LevelingSystem from './systems/LevelingSystem.js';
 import MapSystem from './systems/MapSystem.js';
 import EffectsManager from './managers/EffectsManager.js';
 import LootManager from './managers/LootManager.js';
+import DeathAnimationManager from './managers/DeathAnimationManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -143,6 +144,9 @@ export default class GameScene extends Phaser.Scene {
         
         // Loot Manager (handles loot drops and pickups)
         this.lootManager = new LootManager(this);
+        
+        // Death Animation Manager (handles satisfying enemy death effects)
+        this.deathAnimationManager = new DeathAnimationManager(this);
         
         // Collision Manager (pass effectsManager for poison and enemyManager for cleanup)
         this.collisionManager = new CollisionManager(this, this.effectsManager, this.enemyManager);

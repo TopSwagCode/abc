@@ -470,6 +470,11 @@ export default class EnemyManager {
     destroyEnemy(enemy) {
         if (!enemy) return;
         
+        // Play death animation BEFORE destroying the enemy
+        if (this.scene.deathAnimationManager && enemy.enemyType) {
+            this.scene.deathAnimationManager.playDeathAnimation(enemy, enemy.enemyType);
+        }
+        
         // Clear any active effects (poison, etc.) - ALWAYS call to ensure cleanup
         if (this.scene.effectsManager) {
             this.scene.effectsManager.clearPoison(enemy);
