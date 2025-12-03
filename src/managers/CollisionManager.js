@@ -293,10 +293,8 @@ export class CollisionManager {
         // Kill enemy if HP <= 0
         if (enemy.hp <= 0) {
             // Use EnemyManager's destroyEnemy for proper cleanup
+            // EnemyManager will handle XP awarding on permanent death
             this.enemyManager.destroyEnemy(enemy);
-            
-            // Award XP
-            this.scene.events.emit('enemyKilled', { position: { x: enemy.x, y: enemy.y } });
         }
         
         // Handle ball bounce

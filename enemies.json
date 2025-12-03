@@ -61,7 +61,7 @@
       "hp": 100,
       "damage": 20,
       "baseSpeed": 60,
-      "spawnWeight": 5,
+      "spawnWeight": 10,
       "description": "Undead skeleton warrior - placeholder for future custom logic",
       "sprite": "assets/enemy-skeleton.png",
       "behavior": {
@@ -77,7 +77,7 @@
       "hp": 200,
       "damage": 50,
       "baseSpeed": 45,
-      "spawnWeight": 12,
+      "spawnWeight": 2,
       "description": "Weak gelatinous creature that spawns frequently",
       "sprite": "assets/enemy-slime.png",
       "behavior": {

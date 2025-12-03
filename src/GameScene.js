@@ -75,6 +75,7 @@ export default class GameScene extends Phaser.Scene {
         this.load.image('enemy_sprite_dodger_green', 'assets/enemy-green.png');
         this.load.image('enemy_sprite_wanderer_blue', 'assets/enemy-blue.png');
         this.load.image('enemy_sprite_skeleton', 'assets/enemy-skeleton.png');
+        this.load.image('enemy_sprite_skeleton_dead', 'assets/enemy-skeleton-dead.png');
         this.load.image('enemy_sprite_slime', 'assets/enemy-slime.png');
         
         // Load loot sprites

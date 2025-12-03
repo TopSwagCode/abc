@@ -304,11 +304,7 @@ export default class EnemyManager {
             
             // Check if enemy died (from poison or other DoT effects)
             if (enemy.hp <= 0) {
-                // Emit death event for XP
-                this.scene.events.emit('enemyKilled', {
-                    enemyType: enemy.enemyType,
-                    position: { x: enemy.x, y: enemy.y }
-                });
+                // destroyEnemy will handle XP awarding on permanent death
                 this.destroyEnemy(enemy);
                 return; // Skip further processing for this enemy
             }
@@ -479,6 +475,15 @@ export default class EnemyManager {
         const enemyY = enemy.y;
         const enemyType = enemy.enemyType;
         
+        // Special death logic: Skeleton resurrection
+        if (enemyType && enemyType.id === 'skeleton') {
+            const shouldResurrect = this.handleSkeletonDeath(enemy, enemyX, enemyY, enemyType);
+            if (shouldResurrect) {
+                // Don't destroy the enemy yet, resurrection will handle it
+                return;
+            }
+        }
+        
         // Special death logic: Slime splitting
         if (enemyType && enemyType.id === 'slime') {
             this.handleSlimeSplit(enemy, enemyX, enemyY, enemyType);
@@ -514,6 +519,12 @@ export default class EnemyManager {
             enemy.poisonStackText.destroy();
             enemy.poisonStackText = null;
         }
+        
+        // Award XP for permanent death (only reaches here if not resurrecting)
+        this.scene.events.emit('enemyKilled', {
+            enemyType: enemyType,
+            position: { x: enemyX, y: enemyY }
+        });
         
         // Destroy the enemy sprite
         if (enemy.active) {
@@ -655,6 +666,149 @@ export default class EnemyManager {
         });
         
         console.log(`✅ Spawned split slime: ${hp}HP, ${size}px size (scale: ${scale.toFixed(2)}, collision radius: ${collisionRadius.toFixed(1)})`);
+    }
+    
+    /**
+     * Handle skeleton death and resurrection
+     * Skeletons can die up to 3 times before final death
+     * @returns {boolean} true if skeleton will resurrect, false if final death
+     */
+    handleSkeletonDeath(enemy, x, y, enemyType) {
+        // Initialize death counter if not exists
+        if (!enemy.deathCount) {
+            enemy.deathCount = 0;
+        }
+        
+        enemy.deathCount++;
+        
+        console.log(`💀 Skeleton death #${enemy.deathCount}/3`);
+        
+        // Check if this is the final death
+        if (enemy.deathCount >= 3) {
+            console.log(`💀 Skeleton final death - no resurrection`);
+            return false; // Allow normal death
+        }
+        
+        // Skeleton will resurrect!
+        this.createSkeletonResurrection(enemy, x, y, enemyType);
+        return true; // Prevent normal death
+    }
+    
+    /**
+     * Create skeleton resurrection animation and logic
+     */
+    createSkeletonResurrection(enemy, x, y, enemyType) {
+        // Hide the original enemy and its components
+        enemy.setVisible(false);
+        enemy.setActive(false);
+        enemy.body.enable = false;
+        
+        // Hide shadow and health bar
+        if (enemy.shadow) enemy.shadow.setVisible(false);
+        if (enemy.healthBarBg) enemy.healthBarBg.setVisible(false);
+        if (enemy.healthBarFill) enemy.healthBarFill.setVisible(false);
+        
+        // Create bone pile sprite
+        const bonePile = this.scene.add.sprite(x, y, 'enemy_sprite_skeleton_dead');
+        const targetSize = enemyType.size * 2;
+        const scale = targetSize / Math.max(bonePile.width, bonePile.height);
+        bonePile.setScale(scale);
+        bonePile.setDepth(GameConfig.DEPTH.PLAYER);
+        bonePile.setAlpha(0);
+        
+        // Fade in the bone pile
+        this.scene.tweens.add({
+            targets: bonePile,
+            alpha: 1,
+            duration: 300,
+            ease: 'Power2'
+        });
+        
+        console.log(`💀 Skeleton collapsed into bones, will resurrect in 5 seconds...`);
+        
+        // Wait 3 seconds, then shake for 2 seconds, then resurrect
+        this.scene.time.delayedCall(3000, () => {
+            console.log(`💀 Bones starting to shake...`);
+            
+            // Shake animation for 2 seconds
+            const shakeInterval = this.scene.time.addEvent({
+                delay: 50,
+                callback: () => {
+                    if (bonePile && bonePile.active) {
+                        const offsetX = (Math.random() - 0.5) * 4;
+                        const offsetY = (Math.random() - 0.5) * 4;
+                        bonePile.setPosition(x + offsetX, y + offsetY);
+                    }
+                },
+                loop: true
+            });
+            
+            // After 2 seconds of shaking, resurrect
+            this.scene.time.delayedCall(2000, () => {
+                shakeInterval.remove();
+                
+                // Flash effect
+                const flash = this.scene.add.circle(x, y, enemyType.size * 2, 0xffffff);
+                flash.setAlpha(0.8);
+                flash.setDepth(GameConfig.DEPTH.PROJECTILE);
+                
+                this.scene.tweens.add({
+                    targets: flash,
+                    alpha: 0,
+                    scale: 2,
+                    duration: 300,
+                    onComplete: () => flash.destroy()
+                });
+                
+                // Destroy bone pile
+                bonePile.destroy();
+                
+                // Resurrect the skeleton
+                this.resurrectSkeleton(enemy, x, y, enemyType);
+            });
+        });
+    }
+    
+    /**
+     * Resurrect the skeleton at full health
+     */
+    resurrectSkeleton(enemy, x, y, enemyType) {
+        console.log(`✨ Skeleton resurrected! Deaths: ${enemy.deathCount}/3`);
+        
+        // Restore full health
+        enemy.hp = enemyType.hp;
+        enemy.maxHP = enemyType.hp;
+        
+        // Reset position
+        enemy.setPosition(x, y);
+        
+        // Make visible and active again
+        enemy.setVisible(true);
+        enemy.setActive(true);
+        enemy.body.enable = true;
+        
+        // Show shadow and health bar
+        if (enemy.shadow) {
+            enemy.shadow.setVisible(true);
+            enemy.shadow.setPosition(x, y + GameConfig.SHADOW.OFFSET_Y);
+        }
+        if (enemy.healthBarBg) enemy.healthBarBg.setVisible(true);
+        if (enemy.healthBarFill) enemy.healthBarFill.setVisible(true);
+        
+        // Update health bar to show full health
+        this.updateEnemyHealthBar(enemy);
+        
+        // Resurrection animation - pop in effect
+        enemy.setAlpha(0);
+        enemy.setScale(enemy.baseScale * 0.5);
+        
+        this.scene.tweens.add({
+            targets: enemy,
+            alpha: 1,
+            scale: enemy.baseScale,
+            duration: 400,
+            ease: 'Back.easeOut'
+        });
     }
     
     getEnemies() {
